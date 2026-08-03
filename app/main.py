@@ -21,6 +21,9 @@ from app.routes import (
 load_dotenv()
 
 
+SESSION_HOURS = 4
+
+
 app = FastAPI(
     title="JADLOG BRÁS",
     description="Sistema de Cotação de Frete - Unidade Brás",
@@ -38,7 +41,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=session_secret,
     session_cookie="jadlog_session",
-    max_age=8 * 60 * 60,
+    max_age=SESSION_HOURS * 60 * 60,
     same_site="lax",
     https_only=os.getenv("VERCEL") == "1",
 )

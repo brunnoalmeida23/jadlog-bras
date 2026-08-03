@@ -1,58 +1,53 @@
-﻿const CACHE_NAME = "jadlog-bras-v2";
+﻿const CACHE_VERSION = "jadlog-bras-v3";
 
-const ARQUIVOS_ESTATICOS = [
-  "/",
-  "/simulador/",
-  "/consulta/",
-  "/manifest.json",
-  "/static/css/style.css",
-  "/static/js/main.js",
-  "/static/logo-jadlog.png",
-  "/static/icons/launchericon-192x192.png",
-  "/static/icons/launchericon-512x512.png"
-];
-
-self.addEventListener("install", (event) => {
-  self.skipWaiting();
-
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ARQUIVOS_ESTATICOS);
-    })
-  );
+self.addEventListener("install", () => {
+    self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((nomes) => {
-      return Promise.all(
-        nomes
-          .filter((nome) => nome !== CACHE_NAME)
-          .map((nome) => caches.delete(nome))
-      );
-    })
-  );
+    event.waitUntil(
+        (async () => {
+            const cachesExistentes = await caches.keys();
 
-  self.clients.claim();
+            await Promise.all(
+                cachesExistentes.map((cache) => caches.delete(cache))
+            );
+
+            await self.clients.claim();
+        })()
+    );
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
-    return;
-  }
+    const requisicao = event.request;
 
-  const requisicao = event.request;
+    if (requisicao.method !== "GET") {
+        return;
+    }
 
-  if (requisicao.mode === "navigate") {
+    const url = new URL(requisicao.url);
+
+    const nuncaUsarCache =
+        requisicao.mode === "navigate" ||
+        url.pathname === "/" ||
+        url.pathname === "/login" ||
+        url.pathname === "/logout" ||
+        url.pathname.startsWith("/simulador") ||
+        url.pathname.startsWith("/consulta") ||
+        url.pathname.startsWith("/api/") ||
+        url.pathname.startsWith("/pdf/");
+
+    if (nuncaUsarCache) {
+        event.respondWith(
+            fetch(requisicao, {
+                cache: "no-store"
+            })
+        );
+
+        return;
+    }
+
     event.respondWith(
-      fetch(requisicao).catch(() => caches.match("/"))
+        fetch(requisicao).catch(() => caches.match(requisicao))
     );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(requisicao).then((cache) => {
-      return cache || fetch(requisicao);
-    })
-  );
 });

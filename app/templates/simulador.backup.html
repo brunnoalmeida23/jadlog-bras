@@ -523,11 +523,24 @@
 </div>
 
 
+<div
+    id="modeloPdf"
+    style="
+        display: none;
+        width: 760px;
+        background: #ffffff;
+        padding: 42px;
+        color: #111111;
+        font-family: Arial, sans-serif;
+    "
+></div>
+
 {% endblock %}
 
 
 {% block scripts %}
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 
@@ -745,45 +758,247 @@
 
     document
         .getElementById("btnBaixarCotacao")
-        .addEventListener("click", function () {
+        .addEventListener("click", async function () {
             if (!cotacaoAtual || !exigirLogin()) {
                 return;
             }
 
-            const formularioPdf = document.createElement("form");
+            const modelo = document.getElementById("modeloPdf");
 
-            formularioPdf.method = "POST";
-            formularioPdf.action = "/pdf/cotacao";
-            formularioPdf.style.display = "none";
+            modelo.innerHTML = `
+                <div style="text-align:center;">
+                    <img
+                        src="/static/logo-jadlog.png"
+                        style="max-width:190px; margin-bottom:20px;"
+                        alt="Jadlog"
+                    >
 
-            const camposPdf = {
-                numero_cotacao: cotacaoAtual.numero_cotacao,
-                cliente_nome: cotacaoAtual.cliente_nome,
-                cliente_documento: cotacaoAtual.cliente_documento,
-                destino: cotacaoAtual.destino,
-                cep: cotacaoAtual.cep,
-                peso: cotacaoAtual.peso,
-                volumes: cotacaoAtual.volumes,
-                valor_nf: cotacaoAtual.valor_nf,
-                prazo: cotacaoAtual.prazo,
-                package: cotacaoAtual.package,
-                com: cotacaoAtual.com
+                    <h1 style="font-size:25px; margin:0;">
+                        JADLOG BRÁS
+                    </h1>
+
+                    <h2 style="font-size:19px; margin:8px 0 28px;">
+                        RECIBO DE FRETE
+                    </h2>
+                </div>
+
+                <div style="
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:16px 30px;
+                    border-top:2px solid #111;
+                    border-bottom:2px solid #111;
+                    padding:22px 0;
+                ">
+                    <div>
+                        <small>NÚMERO</small>
+                        <strong style="display:block;">
+                            ${cotacaoAtual.numero_cotacao}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>EMISSÃO</small>
+                        <strong style="display:block;">
+                            ${dataHoraAtual()}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>CLIENTE</small>
+                        <strong style="display:block;">
+                            ${cotacaoAtual.cliente_nome}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>CPF/CNPJ</small>
+                        <strong style="display:block;">
+                            ${formatarDocumento(
+                                cotacaoAtual.cliente_documento
+                            )}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>DESTINO</small>
+                        <strong style="display:block;">
+                            ${cotacaoAtual.destino}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>CEP</small>
+                        <strong style="display:block;">
+                            ${formatarCep(cotacaoAtual.cep)}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>PESO</small>
+                        <strong style="display:block;">
+                            ${Number(cotacaoAtual.peso).toLocaleString(
+                                "pt-BR",
+                                {
+                                    minimumFractionDigits: 3,
+                                    maximumFractionDigits: 3
+                                }
+                            )} kg
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>VOLUMES</small>
+                        <strong style="display:block;">
+                            ${cotacaoAtual.volumes}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>VALOR DA NF</small>
+                        <strong style="display:block;">
+                            ${formatarMoeda(cotacaoAtual.valor_nf)}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <small>PRAZO</small>
+                        <strong style="display:block;">
+                            ${cotacaoAtual.prazo}
+                        </strong>
+                    </div>
+                </div>
+
+                <div style="margin-top:28px;">
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        padding:18px;
+                        border:2px solid #198754;
+                        margin-bottom:14px;
+                    ">
+                        <strong>PACKAGE</strong>
+                        <strong>
+                            ${formatarMoeda(cotacaoAtual.package)}
+                        </strong>
+                    </div>
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        padding:18px;
+                        border:2px solid #dc3545;
+                    ">
+                        <strong>.COM</strong>
+                        <strong>
+                            ${formatarMoeda(cotacaoAtual.com)}
+                        </strong>
+                    </div>
+                </div>
+
+                <div style="
+                    text-align:center;
+                    margin-top:34px;
+                    padding-top:18px;
+                    border-top:1px solid #777;
+                    font-size:13px;
+                ">
+                    <strong>
+                        VALORES EXCLUSIVOS DA UNIDADE JADLOG BRÁS
+                    </strong>
+
+                    <div style="margin-top:6px;">
+                        AV. VAUTIER, 455 - BRÁS - SÃO PAULO/SP
+                    </div>
+
+                    <div style="margin-top:5px;">
+                        Cotação sujeita à conferência no atendimento.
+                    </div>
+                </div>
+            `;
+
+            const opcoes = {
+                margin: 10,
+                filename:
+                    `cotacao_${cotacaoAtual.numero_cotacao}.pdf`,
+                image: {
+                    type: "jpeg",
+                    quality: 0.98
+                },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true
+                },
+                jsPDF: {
+                    unit: "mm",
+                    format: "a4",
+                    orientation: "portrait"
+                }
             };
 
-            Object.entries(camposPdf).forEach(([nome, valor]) => {
-                const campo = document.createElement("input");
+            const areaPdf = document.createElement("div");
 
-                campo.type = "hidden";
-                campo.name = nome;
-                campo.value = valor ?? "";
+            areaPdf.style.position = "absolute";
+            areaPdf.style.left = "0";
+            areaPdf.style.top = "0";
+            areaPdf.style.width = "760px";
+            areaPdf.style.minHeight = "1050px";
+            areaPdf.style.padding = "42px";
+            areaPdf.style.background = "#ffffff";
+            areaPdf.style.color = "#111111";
+            areaPdf.style.fontFamily = "Arial, sans-serif";
+            areaPdf.style.zIndex = "99999";
 
-                formularioPdf.appendChild(campo);
-            });
+            areaPdf.innerHTML = modelo.innerHTML;
 
-            document.body.appendChild(formularioPdf);
-            formularioPdf.submit();
-            formularioPdf.remove();
+            document.body.appendChild(areaPdf);
+
+            try {
+                const imagens = Array.from(
+                    areaPdf.querySelectorAll("img")
+                );
+
+                await Promise.all(
+                    imagens.map((imagem) => {
+                        if (
+                            imagem.complete &&
+                            imagem.naturalWidth > 0
+                        ) {
+                            return Promise.resolve();
+                        }
+
+                        return new Promise((resolve) => {
+                            imagem.onload = resolve;
+                            imagem.onerror = resolve;
+                        });
+                    })
+                );
+
+                await new Promise((resolve) => {
+                    setTimeout(resolve, 300);
+                });
+
+                await html2pdf()
+                    .set(opcoes)
+                    .from(areaPdf)
+                    .save();
+
+            } catch (erroPdf) {
+                console.error(
+                    "Erro ao gerar PDF:",
+                    erroPdf
+                );
+
+                alert(
+                    "Não foi possível gerar o PDF. " +
+                    "Atualize a página e tente novamente."
+                );
+
+            } finally {
+                areaPdf.remove();
+            }
         });
+
     document
         .getElementById("btnAbrirImpressao")
         .addEventListener("click", function () {
