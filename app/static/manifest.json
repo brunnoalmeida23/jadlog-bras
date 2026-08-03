@@ -1,8 +1,26 @@
 ﻿{
-    "name": "JADLOG BRÁS",
-    "short_name": "Jadlog Brás",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#E31E24"
+  "name": "JADLOG BRÁS - Simulador de Fretes",
+  "short_name": "Jadlog Brás",
+  "description": "Sistema de cotação de fretes da unidade Jadlog Brás",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#E31E24",
+  "theme_color": "#E31E24",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/launchericon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
