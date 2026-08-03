@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Consulta de Cotações</h2>
+
+<div>
+    <label>Número da Cotação:</label>
+    <input type="text" id="numeroCotacao" placeholder="Ex: COT-2026-0001">
+    <button onclick="consultar()">Consultar</button>
+</div>
+
+<div id="resultado" style="display:none;"></div>
+<div id="erro" style="display:none;color:red;"></div>
+
+<script>
+    async function consultar() {
+        const numero = document.getElementById('numeroCotacao').value;
+        if (!numero) {
+            alert('Digite o número da cotação');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/consultar-cotacao?numero_cotacao=${numero}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                const d = result.dados;
+                document.getElementById('resultado').style.display = 'block';
+                document.getElementById('resultado').innerHTML = `
+                    <h3>Detalhes da Cotação</h3>
+                    <p><strong>Número:</strong> ${d.numero_cotacao}</p>
+                    <p><strong>Cliente:</strong> ${d.cliente_nome}</p>
+                    <p><strong>Destino:</strong> ${d.destino}</p>
+                    <p><strong>Total:</strong> R$ ${d.total.toFixed(2)}</p>
+                `;
+                document.getElementById('erro').style.display = 'none';
+            } else {
+                document.getElementById('erro').style.display = 'block';
+                document.getElementById('erro').textContent = '❌ ' + result.message;
+                document.getElementById('resultado').style.display = 'none';
+            }
+        } catch (error) {
+            document.getElementById('erro').style.display = 'block';
+            document.getElementById('erro').textContent = '❌ Erro ao consultar';
+            document.getElementById('resultado').style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

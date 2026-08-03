@@ -1,0 +1,8 @@
+﻿{
+    "name": "JADLOG BRÁS",
+    "short_name": "Jadlog Brás",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#E31E24"
+}

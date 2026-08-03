@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Simulador | JADLOG BRÁS{% endblock %}
+
+{% block content %}
+
+<section class="mb-4">
+    <h2 class="fw-bold mb-1">
+        <i class="bi bi-calculator text-danger me-2"></i>
+        Simular Frete
+    </h2>
+
+    <p class="text-muted mb-0">
+        Consulte as modalidades PACKAGE e .COM.
+    </p>
+</section>
+
+<div class="row g-4">
+
+    <div class="col-lg-7">
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+
+                <div class="mb-4">
+                    <label class="fw-bold d-block mb-2">
+                        Origem
+                    </label>
+
+                    <span class="badge rounded-pill text-bg-danger px-3 py-2">
+                        <i class="bi bi-geo-alt-fill me-1"></i>
+                        Brás - SP
+                    </span>
+                </div>
+
+                <form id="formSimulador">
+
+                    <div class="mb-3">
+                        <label
+                            for="cepDestino"
+                            class="form-label fw-bold"
+                        >
+                            CEP de destino
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            id="cepDestino"
+                            maxlength="9"
+                            inputmode="numeric"
+                            placeholder="00000-000"
+                            required
+                        >
+                    </div>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-5">
+                            <label
+                                for="peso"
+                                class="form-label fw-bold"
+                            >
+                                Peso total (kg)
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control form-control-lg"
+                                id="peso"
+                                min="0.001"
+                                step="0.001"
+                                placeholder="Ex.: 40"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-3">
+                            <label
+                                for="volumes"
+                                class="form-label fw-bold"
+                            >
+                                Volumes
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control form-control-lg"
+                                id="volumes"
+                                min="1"
+                                step="1"
+                                value="1"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label
+                                for="valorNF"
+                                class="form-label fw-bold"
+                            >
+                                Valor da NF (R$)
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control form-control-lg"
+                                id="valorNF"
+                                min="0"
+                                step="0.01"
+                                placeholder="Ex.: 1000"
+                                required
+                            >
+                        </div>
+
+                    </div>
+
+                    <div class="row g-3 mt-1">
+
+                        <div class="col-md-6">
+                            <label
+                                for="clienteNome"
+                                class="form-label fw-bold"
+                            >
+                                Nome do cliente
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="clienteNome"
+                                placeholder="Nome ou razão social"
+                            >
+                        </div>
+
+                        <div class="col-md-6">
+                            <label
+                                for="clienteDocumento"
+                                class="form-label fw-bold"
+                            >
+                                CPF/CNPJ
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="clienteDocumento"
+                                placeholder="Somente números"
+                            >
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="erro"
+                        class="alert alert-danger mt-3"
+                        style="display: none;"
+                    ></div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger btn-lg w-100 mt-4"
+                        id="btnCalcular"
+                    >
+                        <i class="bi bi-calculator me-2"></i>
+                        Calcular Frete
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-5">
+
+        <div
+            class="card border-0 shadow-sm rounded-4"
+            id="resultadoVazio"
+        >
+            <div class="card-body p-4 text-center text-muted">
+
+                <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+
+                <h5 class="fw-bold text-dark">
+                    Resultado da cotação
+                </h5>
+
+                <p class="mb-0">
+                    Preencha os dados e clique em calcular.
+                </p>
+
+            </div>
+        </div>
+
+        <div
+            class="card border-0 shadow-sm rounded-4"
+            id="resultado"
+            style="display: none;"
+        >
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between align-items-start mb-3">
+
+                    <div>
+                        <small class="text-muted">
+                            Número da cotação
+                        </small>
+
+                        <h5
+                            class="fw-bold mb-0"
+                            id="resNumeroCotacao"
+                        >
+                            -
+                        </h5>
+                    </div>
+
+                    <span class="badge text-bg-success">
+                        Cotação concluída
+                    </span>
+
+                </div>
+
+                <div class="bg-light rounded-3 p-3 mb-3">
+
+                    <div class="row g-3">
+
+                        <div class="col-7">
+                            <small class="text-muted">
+                                Destino
+                            </small>
+
+                            <div
+                                class="fw-bold"
+                                id="resDestino"
+                            >
+                                -
+                            </div>
+                        </div>
+
+                        <div class="col-5">
+                            <small class="text-muted">
+                                Prazo
+                            </small>
+
+                            <div
+                                class="fw-bold"
+                                id="resPrazo"
+                            >
+                                -
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <small class="text-muted">
+                                Peso
+                            </small>
+
+                            <div
+                                class="fw-bold"
+                                id="resPeso"
+                            >
+                                -
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <small class="text-muted">
+                                Volumes
+                            </small>
+
+                            <div
+                                class="fw-bold"
+                                id="resVolumes"
+                            >
+                                -
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <small class="text-muted">
+                                CEP
+                            </small>
+
+                            <div
+                                class="fw-bold"
+                                id="resCep"
+                            >
+                                -
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">
+                        PACKAGE
+                    </small>
+
+                    <div
+                        class="border border-success rounded-3 p-3 d-flex justify-content-between align-items-center"
+                    >
+                        <div>
+                            <strong>PACKAGE</strong>
+                            <small class="text-muted d-block">
+                                Modalidade padrão
+                            </small>
+                        </div>
+
+                        <span
+                            class="fs-4 fw-bold text-success"
+                            id="resPackage"
+                        >
+                            R$ -
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <small class="text-muted d-block mb-1">
+                        .COM
+                    </small>
+
+                    <div
+                        class="border rounded-3 p-3 d-flex justify-content-between align-items-center"
+                    >
+                        <div>
+                            <strong>.COM</strong>
+                            <small class="text-muted d-block">
+                                Modalidade alternativa
+                            </small>
+                        </div>
+
+                        <span
+                            class="fs-4 fw-bold text-danger"
+                            id="resCom"
+                        >
+                            R$ -
+                        </span>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-danger w-100 mt-4"
+                    onclick="limparResultado()"
+                >
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>
+                    Nova Cotação
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    const form = document.getElementById("formSimulador");
+    const btnCalcular = document.getElementById("btnCalcular");
+    const erro = document.getElementById("erro");
+    const resultado = document.getElementById("resultado");
+    const resultadoVazio = document.getElementById("resultadoVazio");
+
+    function formatarMoeda(valor) {
+        return Number(valor).toLocaleString(
+            "pt-BR",
+            {
+                style: "currency",
+                currency: "BRL"
+            }
+        );
+    }
+
+    function formatarCep(valor) {
+        const numeros = valor.replace(/\D/g, "").slice(0, 8);
+
+        if (numeros.length <= 5) {
+            return numeros;
+        }
+
+        return `${numeros.slice(0, 5)}-${numeros.slice(5)}`;
+    }
+
+    document
+        .getElementById("cepDestino")
+        .addEventListener("input", function () {
+            this.value = formatarCep(this.value);
+        });
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        erro.style.display = "none";
+        resultado.style.display = "none";
+
+        btnCalcular.disabled = true;
+        btnCalcular.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Calculando...
+        `;
+
+        const dados = new URLSearchParams();
+
+        dados.append(
+            "cep_destino",
+            document.getElementById("cepDestino").value
+        );
+
+        dados.append(
+            "peso",
+            document.getElementById("peso").value
+        );
+
+        dados.append(
+            "valor_nf",
+            document.getElementById("valorNF").value
+        );
+
+        dados.append(
+            "volumes",
+            document.getElementById("volumes").value
+        );
+
+        dados.append(
+            "cliente_nome",
+            document.getElementById("clienteNome").value
+        );
+
+        dados.append(
+            "cliente_documento",
+            document.getElementById("clienteDocumento").value
+        );
+
+        try {
+            const response = await fetch(
+                "/simulador/calcular",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+                    body: dados
+                }
+            );
+
+            const retorno = await response.json();
+
+            if (!response.ok || !retorno.success) {
+                throw new Error(
+                    retorno.message ||
+                    "Não foi possível calcular o frete."
+                );
+            }
+
+            const cotacao = retorno.dados;
+
+            document.getElementById(
+                "resNumeroCotacao"
+            ).textContent = cotacao.numero_cotacao;
+
+            document.getElementById(
+                "resDestino"
+            ).textContent = cotacao.destino;
+
+            document.getElementById(
+                "resPrazo"
+            ).textContent = cotacao.prazo;
+
+            document.getElementById(
+                "resPeso"
+            ).textContent =
+                Number(cotacao.peso).toLocaleString(
+                    "pt-BR",
+                    {
+                        minimumFractionDigits: 3,
+                        maximumFractionDigits: 3
+                    }
+                ) + " kg";
+
+            document.getElementById(
+                "resVolumes"
+            ).textContent = cotacao.volumes;
+
+            document.getElementById(
+                "resCep"
+            ).textContent = formatarCep(cotacao.cep);
+
+            document.getElementById(
+                "resPackage"
+            ).textContent = formatarMoeda(cotacao.package);
+
+            document.getElementById(
+                "resCom"
+            ).textContent = formatarMoeda(cotacao.com);
+
+            resultadoVazio.style.display = "none";
+            resultado.style.display = "block";
+
+        } catch (error) {
+            erro.textContent = `❌ ${error.message}`;
+            erro.style.display = "block";
+            resultadoVazio.style.display = "block";
+
+        } finally {
+            btnCalcular.disabled = false;
+            btnCalcular.innerHTML = `
+                <i class="bi bi-calculator me-2"></i>
+                Calcular Frete
+            `;
+        }
+    });
+
+    function limparResultado() {
+        form.reset();
+        document.getElementById("volumes").value = "1";
+        erro.style.display = "none";
+        resultado.style.display = "none";
+        resultadoVazio.style.display = "block";
+    }
+</script>
+
+{% endblock %}
