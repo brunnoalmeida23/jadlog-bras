@@ -334,6 +334,41 @@ def _calcular_capital(
     )
 
 
+def _calcular_comissao_acima_30(
+    peso: Decimal,
+) -> Decimal:
+    """
+    Comissão fixa por faixa para qualquer modalidade e destino
+    quando o peso for superior a 30 kg.
+
+    Regras:
+    - acima de 30 até 40 kg: R$ 140,00
+    - acima de 40 até 50 kg: R$ 150,00
+    - acima de 50 até 60 kg: R$ 160,00
+    - acima de 60 até 70 kg: R$ 170,00
+    - acima de 70 até 80 kg: R$ 180,00
+    - acima de 80 até 90 kg: R$ 190,00
+    - acima de 90 até 100 kg: R$ 200,00
+    """
+    faixas = (
+        (Decimal("40"), Decimal("140.00")),
+        (Decimal("50"), Decimal("150.00")),
+        (Decimal("60"), Decimal("160.00")),
+        (Decimal("70"), Decimal("170.00")),
+        (Decimal("80"), Decimal("180.00")),
+        (Decimal("90"), Decimal("190.00")),
+        (Decimal("100"), Decimal("200.00")),
+    )
+
+    for limite, comissao in faixas:
+        if peso <= limite:
+            return comissao
+
+    raise ErroComissao(
+        "Peso acima de 100 kg sem comissão definida."
+    )
+
+
 def calcular_comissao(
     modalidade: str,
     tipo_tarifa: str,
@@ -344,17 +379,31 @@ def calcular_comissao(
         modalidade
     )
 
-    tipo_normalizado = _normalizar_tipo(tipo_tarifa)
+    tipo_normalizado = _normalizar_tipo(
+        tipo_tarifa
+    )
 
     peso_decimal = Decimal(str(peso))
 
-    if peso_decimal <= 0:
+    if peso_decimal <= Decimal("0"):
         raise ErroComissao(
             "O peso deve ser maior que zero."
         )
 
-    if tipo_normalizado.startswith("INTERIOR"):
-        comissao = _calcular_interior(peso_decimal)
+    # Acima de 30 kg, Capital e Interior usam a mesma
+    # comissão fixa por faixa de peso.
+    if peso_decimal > Decimal("30"):
+        comissao = _calcular_comissao_acima_30(
+            peso_decimal
+        )
+
+    # Até 30 kg no Interior.
+    elif tipo_normalizado.startswith("INTERIOR"):
+        comissao = _calcular_interior(
+            peso_decimal
+        )
+
+    # Até 30 kg na Capital.
     else:
         comissao = _calcular_capital(
             modalidade=modalidade_normalizada,
@@ -363,7 +412,9 @@ def calcular_comissao(
             peso=peso_decimal,
         )
 
-    return float(_arredondar(comissao))
+    return float(
+        _arredondar(comissao)
+    )
 
 
 def aplicar_comissao(
