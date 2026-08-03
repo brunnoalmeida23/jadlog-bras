@@ -1,1 +1,1 @@
-﻿from . import home, simulador, consulta, api
+﻿from . import api, auth, consulta, home, pdf, simulador
