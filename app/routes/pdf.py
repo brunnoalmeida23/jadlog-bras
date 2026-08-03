@@ -158,7 +158,7 @@ async def gerar_pdf_cotacao(
 
     elementos.append(
         Paragraph(
-            "RECIBO DE COTAÇÃO",
+            "RECIBO DE FRETE",
             estilo_subtitulo,
         )
     )
