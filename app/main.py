@@ -125,4 +125,4 @@ async def get_sw():
 
     return {
         "error": "Service Worker não encontrado",
-    }
+    }		

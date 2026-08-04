@@ -5,8 +5,8 @@ import os
 import re
 from datetime import datetime
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
@@ -67,9 +67,6 @@ def formatar_moeda(valor: float) -> str:
 
 
 @router.post("/cotacao")
-async def gerar_pdf_cotacao(
-    request: Request,
-    numero_cotacao: str = Form(...),
     cliente_nome: str = Form("Cliente não informado"),
     cliente_documento: str = Form(""),
     destino: str = Form(...),
@@ -81,15 +78,6 @@ async def gerar_pdf_cotacao(
     package: float = Form(...),
     com: float = Form(...),
 ):
-    if not request.session.get("autenticado"):
-        return JSONResponse(
-            status_code=401,
-            content={
-                "success": False,
-                "message": "Faça login para baixar a cotação.",
-            },
-        )
-
     memoria = io.BytesIO()
 
     documento = SimpleDocTemplate(
@@ -158,7 +146,7 @@ async def gerar_pdf_cotacao(
 
     elementos.append(
         Paragraph(
-            "RECIBO DE FRETE",
+            "COTAÇÃO DE FRETE",
             estilo_subtitulo,
         )
     )
