@@ -912,89 +912,122 @@
                         <style>
                             @page {
                                 size: 58mm auto;
-                                margin: 2mm;
+                                margin: 0;
                             }
 
                             * {
                                 box-sizing: border-box;
                             }
 
-                            html,
-                            body {
+                            html {
+                                width: 58mm;
                                 margin: 0;
                                 padding: 0;
                                 background: #ffffff;
-                                color: #000000;
                             }
 
                             body {
-                                width: 54mm;
-                                margin: 0 auto;
+                                width: 48mm;
+                                margin: 0 4mm 0 6mm;
+                                padding: 0;
+                                overflow: hidden;
+                                color: #000000;
+                                background: #ffffff;
                                 font-family: Arial, Helvetica, sans-serif;
-                                font-size: 10px;
+                                font-size: 9px;
                                 line-height: 1.25;
                             }
 
                             .centro {
+                                width: 100%;
                                 text-align: center;
                             }
 
                             .logo {
                                 display: block;
-                                width: 34mm;
-                                max-height: 13mm;
+                                width: 31mm;
+                                max-width: 100%;
+                                max-height: 12mm;
                                 object-fit: contain;
                                 margin: 0 auto 1.5mm;
                             }
 
                             .unidade {
+                                width: 100%;
                                 margin: 0;
-                                font-size: 14px;
+                                font-size: 13px;
                                 font-weight: 700;
+                                text-align: center;
                             }
 
                             .titulo {
+                                width: 100%;
                                 margin: 1mm 0 2mm;
-                                font-size: 12px;
+                                font-size: 11px;
                                 font-weight: 700;
+                                text-align: center;
                             }
 
                             .linha {
+                                display: block;
                                 width: 100%;
                                 border-top: 1px dashed #000000;
                                 margin: 2mm 0;
                             }
 
                             .campo {
-                                margin-bottom: 1.8mm;
-                                overflow-wrap: anywhere;
+                                display: block;
+                                width: 100%;
+                                margin: 0 0 1.8mm;
+                                padding: 0;
+                                overflow: visible;
+                                text-align: left;
                             }
 
                             .rotulo {
                                 display: block;
-                                font-size: 8px;
+                                width: 100%;
+                                font-size: 7.5px;
                                 font-weight: normal;
                                 text-transform: uppercase;
+                                white-space: normal;
                             }
 
                             .conteudo {
                                 display: block;
+                                width: 100%;
                                 margin-top: 0.4mm;
-                                font-size: 10px;
+                                font-size: 9.5px;
                                 font-weight: 700;
+                                white-space: normal;
+                                overflow-wrap: break-word;
+                                word-break: normal;
+                                text-align: left;
                             }
 
                             .duas-colunas {
-                                display: flex;
-                                width: 100%;
+                                display: grid;
+                                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
                                 gap: 2mm;
+                                width: 100%;
                             }
 
                             .duas-colunas .campo {
-                                width: 50%;
+                                width: auto;
+                                min-width: 0;
+                            }
+
+                            .observacoes {
+                                display: block;
+                                width: 100%;
+                                white-space: pre-wrap;
+                                overflow-wrap: break-word;
+                                word-break: normal;
+                                text-align: left;
                             }
 
                             .valor {
+                                width: 100%;
                                 border: 2px solid #000000;
                                 margin: 2mm 0;
                                 padding: 2.5mm 1mm;
@@ -1003,68 +1036,72 @@
 
                             .valor-label {
                                 display: block;
-                                font-size: 9px;
+                                font-size: 8px;
                                 font-weight: 700;
                             }
 
                             .valor-total {
                                 display: block;
                                 margin-top: 1mm;
-                                font-size: 18px;
+                                font-size: 17px;
                                 font-weight: 700;
                             }
 
                             #qrcode {
                                 display: flex;
+                                width: 100%;
                                 justify-content: center;
                                 margin: 2mm 0;
                             }
 
                             #qrcode img,
                             #qrcode canvas {
-                                width: 22mm !important;
-                                height: 22mm !important;
+                                width: 20mm !important;
+                                height: 20mm !important;
                             }
 
                             #codigoBarras {
                                 display: block;
-                                width: 48mm;
-                                height: 13mm;
+                                width: 42mm !important;
+                                max-width: 100%;
+                                height: 12mm;
                                 margin: 0 auto;
                             }
 
                             .numero-codigo {
+                                width: 100%;
                                 margin-top: 1mm;
-                                font-size: 9px;
+                                font-size: 8px;
                                 font-weight: 700;
                                 text-align: center;
                             }
 
-                            .observacoes {
-                                white-space: pre-wrap;
-                                overflow-wrap: anywhere;
-                            }
-
                             .rodape {
+                                width: 100%;
                                 margin-top: 2mm;
                                 text-align: center;
-                                font-size: 8px;
+                                font-size: 7.5px;
                                 line-height: 1.35;
                             }
 
                             .agradecimento {
                                 margin-top: 2mm;
-                                font-size: 9px;
+                                font-size: 8px;
                                 font-weight: 700;
                             }
 
                             @media print {
-                                html,
-                                body {
-                                    width: 54mm;
+                                html {
+                                    width: 58mm;
+                                    margin: 0;
+                                    padding: 0;
                                 }
 
                                 body {
+                                    width: 48mm;
+                                    margin: 0 4mm 0 6mm;
+                                    padding: 0;
+                                    overflow: hidden;
                                     print-color-adjust: exact;
                                     -webkit-print-color-adjust: exact;
                                 }
