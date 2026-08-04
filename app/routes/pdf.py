@@ -58,15 +58,37 @@ def formatar_cep(valor: str) -> str:
 
 def formatar_moeda(valor: float) -> str:
     texto = f"{float(valor):,.2f}"
-
     texto = texto.replace(",", "#")
     texto = texto.replace(".", ",")
     texto = texto.replace("#", ".")
-
     return f"R$ {texto}"
 
 
+def formatar_peso(valor: float) -> str:
+    return (
+        f"{float(valor):,.3f}"
+        .replace(",", "#")
+        .replace(".", ",")
+        .replace("#", ".")
+        + " kg"
+    )
+
+
+def formatar_prazo(valor: str) -> str:
+    texto = str(valor or "").strip()
+
+    if not texto:
+        return "Não informado"
+
+    if texto.isdigit():
+        return f"{texto} dias úteis"
+
+    return texto
+
+
 @router.post("/cotacao")
+async def gerar_pdf_cotacao(
+    numero_cotacao: str = Form(...),
     cliente_nome: str = Form("Cliente não informado"),
     cliente_documento: str = Form(""),
     destino: str = Form(...),
@@ -98,6 +120,8 @@ def formatar_moeda(valor: float) -> str:
         parent=estilos["Normal"],
         alignment=TA_CENTER,
         fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=12,
     )
 
     estilo_titulo = ParagraphStyle(
@@ -118,6 +142,24 @@ def formatar_moeda(valor: float) -> str:
         spaceAfter=12,
     )
 
+    estilo_rotulo = ParagraphStyle(
+        "Rotulo",
+        parent=estilos["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        textColor=colors.HexColor("#555555"),
+    )
+
+    estilo_valor = ParagraphStyle(
+        "Valor",
+        parent=estilos["Normal"],
+        fontName="Helvetica",
+        fontSize=10,
+        leading=13,
+        textColor=colors.HexColor("#111111"),
+    )
+
     elementos = []
 
     logo_path = os.path.join(
@@ -132,7 +174,6 @@ def formatar_moeda(valor: float) -> str:
             width=48 * mm,
             height=18 * mm,
         )
-
         logo.hAlign = "CENTER"
         elementos.append(logo)
         elementos.append(Spacer(1, 4 * mm))
@@ -155,46 +196,44 @@ def formatar_moeda(valor: float) -> str:
 
     dados_cotacao = [
         [
-            Paragraph("<b>NÚMERO</b>", estilos["Normal"]),
-            Paragraph("<b>EMISSÃO</b>", estilos["Normal"]),
+            Paragraph("NÚMERO", estilo_rotulo),
+            Paragraph("EMISSÃO", estilo_rotulo),
         ],
         [
-            numero_cotacao,
-            emissao,
+            Paragraph(numero_cotacao, estilo_valor),
+            Paragraph(emissao, estilo_valor),
         ],
         [
-            Paragraph("<b>CLIENTE</b>", estilos["Normal"]),
-            Paragraph("<b>CPF/CNPJ</b>", estilos["Normal"]),
+            Paragraph("CLIENTE", estilo_rotulo),
+            Paragraph("CPF/CNPJ", estilo_rotulo),
         ],
         [
-            cliente_nome,
-            formatar_documento(cliente_documento),
+            Paragraph(cliente_nome or "Cliente não informado", estilo_valor),
+            Paragraph(formatar_documento(cliente_documento), estilo_valor),
         ],
         [
-            Paragraph("<b>DESTINO</b>", estilos["Normal"]),
-            Paragraph("<b>CEP</b>", estilos["Normal"]),
+            Paragraph("DESTINO", estilo_rotulo),
+            Paragraph("CEP", estilo_rotulo),
         ],
         [
-            destino,
-            formatar_cep(cep),
+            Paragraph(destino, estilo_valor),
+            Paragraph(formatar_cep(cep), estilo_valor),
         ],
         [
-            Paragraph("<b>PESO</b>", estilos["Normal"]),
-            Paragraph("<b>VOLUMES</b>", estilos["Normal"]),
+            Paragraph("PESO", estilo_rotulo),
+            Paragraph("VOLUMES", estilo_rotulo),
         ],
         [
-            f"{peso:,.3f} kg".replace(",", "X")
-            .replace(".", ",")
-            .replace("X", "."),
-            str(volumes),
+            Paragraph(formatar_peso(peso), estilo_valor),
+            Paragraph(str(volumes), estilo_valor),
         ],
         [
-            Paragraph("<b>VALOR DA NF</b>", estilos["Normal"]),
-            Paragraph("<b>PRAZO</b>", estilos["Normal"]),
+            Paragraph("VALOR DA NF", estilo_rotulo),
+            Paragraph("PRAZO", estilo_rotulo),
         ],
         [
-            formatar_moeda(valor_nf),
-            prazo,
+            Paragraph(formatar_moeda(valor_nf), estilo_valor),
+            Paragraph(formatar_prazo(prazo), estilo_valor),
         ],
     ]
 
@@ -283,26 +322,32 @@ def formatar_moeda(valor: float) -> str:
     elementos.append(tabela_dados)
     elementos.append(Spacer(1, 8 * mm))
 
+    estilo_package = ParagraphStyle(
+        "Package",
+        parent=estilos["Heading3"],
+        textColor=colors.HexColor("#198754"),
+    )
+
+    estilo_com = ParagraphStyle(
+        "Com",
+        parent=estilos["Heading3"],
+        textColor=colors.HexColor("#E31E24"),
+    )
+
     tabela_valores = Table(
         [
             [
-                Paragraph(
-                    "<b>PACKAGE</b>",
-                    estilos["Heading3"],
-                ),
+                Paragraph("<b>PACKAGE</b>", estilo_package),
                 Paragraph(
                     f"<b>{formatar_moeda(package)}</b>",
-                    estilos["Heading3"],
+                    estilo_package,
                 ),
             ],
             [
-                Paragraph(
-                    "<b>.COM</b>",
-                    estilos["Heading3"],
-                ),
+                Paragraph("<b>.COM</b>", estilo_com),
                 Paragraph(
                     f"<b>{formatar_moeda(com)}</b>",
-                    estilos["Heading3"],
+                    estilo_com,
                 ),
             ],
         ],
@@ -327,18 +372,6 @@ def formatar_moeda(valor: float) -> str:
                     (0, 1),
                     (-1, 1),
                     1.5,
-                    colors.HexColor("#E31E24"),
-                ),
-                (
-                    "TEXTCOLOR",
-                    (0, 0),
-                    (-1, 0),
-                    colors.HexColor("#198754"),
-                ),
-                (
-                    "TEXTCOLOR",
-                    (0, 1),
-                    (-1, 1),
                     colors.HexColor("#E31E24"),
                 ),
                 (
@@ -382,14 +415,27 @@ def formatar_moeda(valor: float) -> str:
     )
 
     elementos.append(tabela_valores)
-    elementos.append(Spacer(1, 11 * mm))
+    elementos.append(Spacer(1, 10 * mm))
 
     elementos.append(
         Paragraph(
-            "<b>VALORES EXCLUSIVOS DA UNIDADE JADLOG BRÁS</b>",
+            "<b>COTAÇÃO VÁLIDA EXCLUSIVAMENTE PARA ATENDIMENTO "
+            "NA UNIDADE JADLOG BRÁS</b>",
             estilo_centralizado,
         )
     )
+
+    elementos.append(Spacer(1, 2 * mm))
+
+    elementos.append(
+        Paragraph(
+            "Valores sujeitos à conferência de peso, volumes, "
+            "documentação e condições da mercadoria no momento da postagem.",
+            estilo_centralizado,
+        )
+    )
+
+    elementos.append(Spacer(1, 2 * mm))
 
     elementos.append(
         Paragraph(
@@ -398,9 +444,11 @@ def formatar_moeda(valor: float) -> str:
         )
     )
 
+    elementos.append(Spacer(1, 2 * mm))
+
     elementos.append(
         Paragraph(
-            "Cotação sujeita à conferência no atendimento.",
+            "Obrigado por escolher a Jadlog Brás. Estamos à disposição.",
             estilo_centralizado,
         )
     )
