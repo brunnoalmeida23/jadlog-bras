@@ -22,8 +22,8 @@ async def home_page(request: Request):
         .card-shadow { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }
         .footer { background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }
         .nav-link { color: white !important; }
-        .navbar-brand { color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-        .logo-img { height: 40px; }
+        .navbar-brand { color: white !important; font-weight: 700; }
+        .logo-img { height: 45px; }
         .nav-link.login-btn { 
             background: white; 
             color: #E31E24 !important; 
@@ -32,14 +32,15 @@ async def home_page(request: Request):
             font-weight: 600;
         }
         .nav-link.login-btn:hover { background: #f0f0f0; }
+        .brand-text { color: white; font-size: 1.5rem; font-weight: 700; margin-left: 10px; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand d-flex align-items-center" href="/">
                 <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
-                JADLOG BRÁS
+                <span class="brand-text">JADLOG BRÁS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
