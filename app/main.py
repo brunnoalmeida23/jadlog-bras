@@ -2,11 +2,11 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from starlette.middleware.sessions import SessionMiddleware  # <-- IMPORTADO
+from starlette.middleware.sessions import SessionMiddleware
 import os
 
 from app.routes import home, simulador, consulta, api, rastreio
-from app.routes.auth import router as auth_router
+from app.routes.auth import router as auth_router  # <-- AQUI está auth_router
 
 app = FastAPI(
     title="JADLOG BRÁS",
@@ -14,20 +14,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# === SESSION MIDDLEWARE (ANTES DAS ROTAS) ===
+# SessionMiddleware
 app.add_middleware(
     SessionMiddleware,
     secret_key="jadlog-bras-secret-key-2026",
     max_age=28800  # 8 horas
 )
 
-# === ROTAS ===
+# Rotas
 app.include_router(home.router)
 app.include_router(simulador.router)
 app.include_router(consulta.router)
 app.include_router(api.router)
 app.include_router(rastreio.router)
-app.include_router(auth.router)  # <-- CORRIGIDO: auth.router (não auth_router)
+app.include_router(auth_router)  # <-- CORRETO: auth_router
 
 # Servir arquivos estáticos
 static_dir = os.path.join(os.path.dirname(__file__), "static")
