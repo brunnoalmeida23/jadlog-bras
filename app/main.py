@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 import os
 
 from app.routes import home, simulador, consulta, api, rastreio
+from app.routes.auth import router as auth_router  # ADICIONADO
 
 app = FastAPI(
     title="JADLOG BRÁS",
@@ -18,6 +19,7 @@ app.include_router(simulador.router)
 app.include_router(consulta.router)
 app.include_router(api.router)
 app.include_router(rastreio.router)
+app.include_router(auth_router)  # ADICIONADO
 
 # Servir arquivos estáticos
 static_dir = os.path.join(os.path.dirname(__file__), "static")
