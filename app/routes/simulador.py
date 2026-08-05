@@ -137,6 +137,7 @@ async def simulador_page(request: Request):
             
             resultado.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"></div><p>Calculando...</p></div>';
             
+            // CORREÇÃO: Usa a rota correta da API
             fetch(`/api/calcular-frete?cep=${{cep}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNf || 0}}`)
                 .then(response => response.json())
                 .then(data => {{
@@ -154,7 +155,8 @@ async def simulador_page(request: Request):
                                 <div class="cotacao-item"><span>Lucro</span><span><strong>R$ ${{d.lucro}}</strong></span></div>
                                 <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${{d.preco_final}}</strong></span></div>
                                 <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${{d.ad_valorem}}</strong></span></div>
-                                <div class="cotacao-item total"><span>Frete Total</span><span>R$ ${{d.total}}</span></div>
+                                <div class="cotacao-item total"><span>Frete Total</span><span><strong>R$ ${{d.total}}</strong></span></div>
+                                <div class="cotacao-item"><span>GLM - Lucro</span><span><strong>R$ ${{d.glm}} - R$ ${{d.lucro}}</strong></span></div>
                             </div>
                         `;
                     }} else {{
