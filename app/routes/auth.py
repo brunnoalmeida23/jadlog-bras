@@ -3,18 +3,15 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 import secrets
+from app.services.sessao import sessoes
 
 router = APIRouter(prefix="", tags=["Autenticação"])
 
 SENHA_CORRETA = os.getenv("FUNCIONARIO_SENHA", "JadLog2026")
 
-# Dicionário de sessões
-sessoes = {}
-
 
 @router.get("/login", response_class=HTMLResponse)
 async def pagina_login(request: Request):
-    # Verifica se o usuário já está autenticado pelo cookie
     token = request.cookies.get("auth_token")
     if token and token in sessoes:
         return RedirectResponse(url="/simulador", status_code=303)
@@ -138,7 +135,6 @@ async def realizar_login(request: Request, senha: str = Form(...)):
     if senha != SENHA_CORRETA:
         return {"erro": "Senha incorreta."}
     
-    # Gera um token aleatório
     token = secrets.token_urlsafe(32)
     sessoes[token] = True
     
