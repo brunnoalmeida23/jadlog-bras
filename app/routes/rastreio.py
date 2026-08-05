@@ -237,65 +237,73 @@ async def buscar_rastreio(codigo: str):
                 content={"success": False, "message": "Erro ao acessar o site da Jadlog"}
             )
         
+        # Parse do HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
         eventos = []
         status_atual = "Em trânsito"
         remessa = ""
         
         # Extrair remessa
-        remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', response.text)
-        if remessa_match:
-            remessa = remessa_match.group(1)
+        remessa_elem = soup.find(string=re.compile(r'Remessa'))
+        if remessa_elem:
+            remessa_text = remessa_elem.parent.get_text(strip=True) if remessa_elem.parent else str(remessa_elem)
+            remessa_match = re.search(r'(\d+)', remessa_text)
+            if remessa_match:
+                remessa = remessa_match.group(1)
         
-        # CORREÇÃO: Extrair eventos com data/hora e texto
-        # Padrão: DD/MM/YYYY - HH:MM seguido de texto (até a próxima data)
+        # Buscar todos os elementos que contêm data
         padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
-        matches = list(padrao_data.finditer(response.text))
         
-        for i, match in enumerate(matches):
-            data = match.group(1)
-            hora = match.group(2)
-            
-            # Pega o texto entre esta data e a próxima data
-            start = match.end()
-            if i + 1 < len(matches):
-                end = matches[i + 1].start()
-            else:
-                end = len(response.text)
-            
-            texto_bloco = response.text[start:end].strip()
-            
-            # Remove a data/hora que pode estar no meio do texto
-            texto_bloco = re.sub(r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}:\d{2}', '', texto_bloco)
-            
-            # Pega a primeira linha não vazia
-            linhas = texto_bloco.split('\n')
-            status_text = ""
-            for linha in linhas:
-                linha = linha.strip()
-                if linha and len(linha) > 5:
-                    if not linha.startswith('RASTREAMENTO') and not linha.startswith('Resultados'):
-                        if not re.match(r'^Remessa\s*\d+$', linha, re.IGNORECASE):
-                            status_text = linha
-                            break
-            
-            # Se não encontrou, pega os primeiros caracteres
-            if not status_text:
-                status_text = texto_bloco[:200].strip()
+        # Procurar em elementos específicos que podem conter os eventos
+        for elemento in soup.find_all(['div', 'p', 'li', 'td', 'span']):
+            texto = elemento.get_text(strip=True)
+            match = padrao_data.search(texto)
+            if match:
+                data = match.group(1)
+                hora = match.group(2)
+                
+                # Pega o texto após a data/hora
+                resto = texto[match.end():].strip()
+                # Se o resto estiver vazio, tenta pegar do próximo elemento irmão
+                if not resto or len(resto) < 5:
+                    next_sibling = elemento.find_next_sibling()
+                    if next_sibling:
+                        resto = next_sibling.get_text(strip=True)
+                
+                # Limpa o texto
+                if resto:
+                    resto = re.sub(r'\s+', ' ', resto)
+                    resto = re.sub(r'^Remessa\s*\d+\s*', '', resto)
+                    resto = re.sub(r'^RASTREAMENTO.*$', '', resto, flags=re.IGNORECASE)
+                    resto = re.sub(r'^Resultados.*$', '', resto, flags=re.IGNORECASE)
+                    
+                    if len(resto) > 3:
+                        eventos.append({
+                            'data': data,
+                            'hora': hora,
+                            'status': resto[:250]
+                        })
+        
+        # Se não encontrou eventos, tenta uma abordagem com regex diretamente no HTML
+        if not eventos:
+            padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^<]+)')
+            for match in padrao_evento.finditer(response.text):
+                data = match.group(1)
+                hora = match.group(2)
+                status_text = match.group(3).strip()
+                
+                # Limpa o texto
                 status_text = re.sub(r'\s+', ' ', status_text)
-            
-            # Limpa o texto
-            if status_text:
                 status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
                 status_text = re.sub(r'^RASTREAMENTO.*$', '', status_text, flags=re.IGNORECASE)
                 status_text = re.sub(r'^Resultados.*$', '', status_text, flags=re.IGNORECASE)
-                status_text = re.sub(r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}:\d{2}\s*', '', status_text)
-                status_text = status_text[:250].strip()
                 
                 if len(status_text) > 3:
                     eventos.append({
                         'data': data,
                         'hora': hora,
-                        'status': status_text
+                        'status': status_text[:250]
                     })
         
         # Atualiza status baseado no último evento
