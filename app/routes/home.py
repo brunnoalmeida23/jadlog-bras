@@ -6,9 +6,8 @@ import os
 
 router = APIRouter(prefix="", tags=["Home"])
 
-# Configuração dos templates
-templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-templates = Jinja2Templates(directory=templates_dir)
+# Caminho SIMPLES dos templates (funciona na Vercel)
+templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
