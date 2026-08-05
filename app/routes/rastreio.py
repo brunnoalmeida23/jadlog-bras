@@ -173,7 +173,7 @@ async def rastreio_page(request: Request):
             html += `<hr><div class="timeline">`;
             
             if (data.historico && data.historico.length > 0) {
-                // Remove eventos duplicados baseados na data + status
+                // Remove eventos duplicados
                 const eventosUnicos = [];
                 const vistos = new Set();
                 
@@ -245,38 +245,66 @@ async def buscar_rastreio(codigo: str):
         remessa = ""
         
         # Extrair remessa
-        remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', response.text)
-        if remessa_match:
-            remessa = remessa_match.group(1)
+        remessa_elem = soup.find(string=re.compile(r'Remessa'))
+        if remessa_elem:
+            remessa_text = remessa_elem.parent.get_text(strip=True) if remessa_elem.parent else str(remessa_elem)
+            remessa_match = re.search(r'(\d+)', remessa_text)
+            if remessa_match:
+                remessa = remessa_match.group(1)
         
-        # VERSÃO QUE FUNCIONOU: Buscar por divs/p com data
-        # Busca por elementos que contêm data no formato DD/MM/YYYY - HH:MM
-        padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+        # Buscar eventos por data e hora no HTML
+        # O formato é: DD/MM/YYYY - HH:MM seguido do texto
+        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^<]+)')
         
-        # Busca em todo o texto
-        for match in padrao_data.finditer(response.text):
+        # Procura em todo o HTML
+        for match in padrao_evento.finditer(response.text):
             data = match.group(1)
             hora = match.group(2)
+            status_text = match.group(3).strip()
             
-            # Pega o texto após a data até a próxima quebra de linha ou próxima data
-            start = match.end()
-            # Pega até 300 caracteres
-            end = min(start + 300, len(response.text))
-            # Tenta cortar na próxima data ou quebra de linha
-            next_date = re.search(r'\d{2}/\d{2}/\d{4}', response.text[start:end])
-            if next_date:
-                end = start + next_date.start()
-            
-            status_text = response.text[start:end].strip()
             # Limpa o texto
-            status_text = status_text.split('\n')[0].strip()
             status_text = re.sub(r'\s+', ' ', status_text)
+            status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
+            status_text = re.sub(r'^RASTREAMENTO.*$', '', status_text, flags=re.IGNORECASE)
+            status_text = re.sub(r'^Resultados.*$', '', status_text, flags=re.IGNORECASE)
             
-            # Filtra textos indesejados
-            if status_text and len(status_text) > 5:
-                if not status_text.startswith('RASTREAMENTO') and not status_text.startswith('Resultados'):
-                    # Remove "Remessa" se estiver no início
-                    status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
+            # Filtra textos vazios ou indesejados
+            if status_text and len(status_text) > 3 and not status_text.startswith('RASTREAMENTO'):
+                eventos.append({
+                    'data': data,
+                    'hora': hora,
+                    'status': status_text[:250],
+                })
+        
+        # Se não encontrou, tenta buscar por divs com conteúdo
+        if not eventos:
+            # Busca por todos os divs, p, li que contêm data
+            for elemento in soup.find_all(['div', 'p', 'li', 'td']):
+                texto = elemento.get_text(strip=True)
+                data_match = re.search(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})', texto)
+                if data_match:
+                    data = data_match.group(1)
+                    hora = data_match.group(2)
+                    # Pega o texto após a data
+                    resto = texto[data_match.end():].strip()
+                    resto = re.sub(r'\s+', ' ', resto)
+                    if resto and len(resto) > 3:
+                        eventos.append({
+                            'data': data,
+                            'hora': hora,
+                            'status': resto[:250],
+                        })
+        
+        # Se ainda não encontrou, tenta buscar por padrão alternativo
+        if not eventos:
+            # Busca por data e hora com texto até a quebra de linha
+            padrao_alt = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})([^\n]+)')
+            for match in padrao_alt.finditer(response.text):
+                data = match.group(1)
+                hora = match.group(2)
+                status_text = match.group(3).strip()
+                status_text = re.sub(r'\s+', ' ', status_text)
+                if status_text and len(status_text) > 3:
                     eventos.append({
                         'data': data,
                         'hora': hora,
