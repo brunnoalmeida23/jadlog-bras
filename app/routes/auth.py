@@ -8,7 +8,7 @@ router = APIRouter(prefix="", tags=["Autenticação"])
 
 SENHA_CORRETA = os.getenv("FUNCIONARIO_SENHA", "JadLog2026")
 
-# Armazenamento temporário de sessões (em produção, use Redis ou banco de dados)
+# Dicionário de sessões (exportado para ser usado em outros lugares)
 sessoes = {}
 
 
