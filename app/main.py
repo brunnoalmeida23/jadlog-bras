@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.middleware.sessions import SessionMiddleware  # <-- IMPORTADO
 import os
 
 from app.routes import home, simulador, consulta, api, rastreio
@@ -13,13 +14,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Rotas (ANTES DO MIDDLEWARE)
+# === SESSION MIDDLEWARE (ANTES DAS ROTAS) ===
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="jadlog-bras-secret-key-2026",
+    max_age=28800  # 8 horas
+)
+
+# === ROTAS ===
 app.include_router(home.router)
 app.include_router(simulador.router)
 app.include_router(consulta.router)
 app.include_router(api.router)
 app.include_router(rastreio.router)
-app.include_router(auth_router)
+app.include_router(auth.router)  # <-- CORRIGIDO: auth.router (não auth_router)
 
 # Servir arquivos estáticos
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -29,7 +37,6 @@ if os.path.exists(static_dir):
 
 @app.get("/logo")
 async def get_logo():
-    """Retorna o logo da Jadlog"""
     logo_path = os.path.join(static_dir, "logo.png")
     if os.path.exists(logo_path):
         return FileResponse(logo_path)
@@ -38,7 +45,6 @@ async def get_logo():
 
 @app.get("/manifest.json")
 async def get_manifest():
-    """Retorna o manifest.json para PWA"""
     manifest_path = os.path.join(static_dir, "manifest.json")
     if os.path.exists(manifest_path):
         return FileResponse(manifest_path)
@@ -47,7 +53,6 @@ async def get_manifest():
 
 @app.get("/sw.js")
 async def get_sw():
-    """Retorna o service worker para PWA"""
     sw_path = os.path.join(static_dir, "sw.js")
     if os.path.exists(sw_path):
         return FileResponse(sw_path)
