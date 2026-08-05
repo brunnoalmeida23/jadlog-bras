@@ -246,40 +246,67 @@ async def buscar_rastreio(codigo: str):
         if remessa_match:
             remessa = remessa_match.group(1)
         
-        # CORREÇÃO: Buscar eventos com data, hora e texto
-        # Padrão: DD/MM/YYYY - HH:MM texto do evento
-        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]+)')
-        matches = padrao_evento.findall(response.text)
+        # NOVA ABORDAGEM: Buscar por blocos de eventos
+        # O site da Jadlog lista eventos em ordem cronológica
+        # Vamos buscar por padrões de data e pegar o texto completo até a próxima data
         
-        for data, hora, status_text in matches:
-            status_text = status_text.strip()
-            # Filtra textos que não são eventos válidos
-            if status_text and not status_text.startswith('RASTREAMENTO') and not status_text.startswith('Resultados'):
+        # Primeiro, encontra todas as ocorrências de data
+        padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+        matches = list(padrao_data.finditer(response.text))
+        
+        for i, match in enumerate(matches):
+            data = match.group(1)
+            hora = match.group(2)
+            
+            # Pega o texto entre esta data e a próxima data (ou até o final)
+            start = match.end()
+            if i + 1 < len(matches):
+                end = matches[i + 1].start()
+            else:
+                end = len(response.text)
+            
+            # Extrai o texto entre as datas
+            texto_bloco = response.text[start:end].strip()
+            
+            # Limpa o texto: pega a primeira linha ou o texto até a quebra de linha
+            linhas = texto_bloco.split('\n')
+            status_text = ""
+            for linha in linhas:
+                linha = linha.strip()
+                if linha and not linha.startswith('RASTREAMENTO') and not linha.startswith('Resultados'):
+                    # Remove números de remessa se estiverem sozinhos
+                    if not re.match(r'^\d+$', linha):
+                        status_text = linha
+                        break
+            
+            # Se não encontrou texto nas linhas, tenta pegar o texto até o próximo marcador
+            if not status_text:
+                # Pega os primeiros 150 caracteres após a data
+                status_text = texto_bloco[:150].strip()
+                # Limpa lixo
+                status_text = re.sub(r'\s+', ' ', status_text)
+                # Remove "Remessa" se estiver no início
+                status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
+            
+            if status_text and len(status_text) > 5:
                 eventos.append({
                     'data': data,
                     'hora': hora,
                     'status': status_text[:200],
                 })
         
-        # Se não encontrou com esse padrão, tenta o padrão alternativo
+        # Se ainda não encontrou eventos, tenta uma abordagem mais simples
         if not eventos:
-            # Busca por data e hora com texto em seguida
-            padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
-            for match in padrao_data.finditer(response.text):
+            # Busca por padrão: data - hora seguido de texto
+            padrao_simples = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^<]+)')
+            for match in padrao_simples.finditer(response.text):
                 data = match.group(1)
                 hora = match.group(2)
-                # Pega o texto após a data
-                start = match.end()
-                end = min(start + 250, len(response.text))
-                # Tenta cortar na próxima data ou quebra de linha
-                next_date = re.search(r'\d{2}/\d{2}/\d{4}', response.text[start:])
-                if next_date:
-                    end = start + next_date.start()
+                status_text = match.group(3).strip()
                 
-                status_text = response.text[start:end].strip()
                 # Limpa o texto
-                status_text = status_text.split('\n')[0].strip()
                 status_text = re.sub(r'\s+', ' ', status_text)
+                status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
                 
                 if status_text and len(status_text) > 5 and not status_text.startswith('RASTREAMENTO'):
                     eventos.append({
