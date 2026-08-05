@@ -173,7 +173,6 @@ async def rastreio_page(request: Request):
             html += `<hr><div class="timeline">`;
             
             if (data.historico && data.historico.length > 0) {
-                // Remove eventos duplicados
                 const eventosUnicos = [];
                 const vistos = new Set();
                 
@@ -238,73 +237,73 @@ async def buscar_rastreio(codigo: str):
                 content={"success": False, "message": "Erro ao acessar o site da Jadlog"}
             )
         
+        # Parse do HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
         eventos = []
         status_atual = "Em trânsito"
         remessa = ""
         
         # Extrair remessa
-        remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', response.text)
-        if remessa_match:
-            remessa = remessa_match.group(1)
+        remessa_elem = soup.find(string=re.compile(r'Remessa'))
+        if remessa_elem:
+            remessa_text = remessa_elem.parent.get_text(strip=True) if remessa_elem.parent else str(remessa_elem)
+            remessa_match = re.search(r'(\d+)', remessa_text)
+            if remessa_match:
+                remessa = remessa_match.group(1)
         
-        # NOVA ABORDAGEM: Extrair eventos de forma simples e direta
-        # Procura por padrões de data/hora e pega o texto após eles
-        padrao = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+        # Buscar todos os elementos que contêm data
+        padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
         
-        # Encontra todas as posições de data/hora
-        posicoes = []
-        for match in padrao.finditer(response.text):
-            posicoes.append({
-                'start': match.start(),
-                'end': match.end(),
-                'data': match.group(1),
-                'hora': match.group(2)
-            })
+        # Procurar em elementos específicos que podem conter os eventos
+        for elemento in soup.find_all(['div', 'p', 'li', 'td', 'span']):
+            texto = elemento.get_text(strip=True)
+            match = padrao_data.search(texto)
+            if match:
+                data = match.group(1)
+                hora = match.group(2)
+                
+                # Pega o texto após a data/hora
+                resto = texto[match.end():].strip()
+                # Se o resto estiver vazio, tenta pegar do próximo elemento irmão
+                if not resto or len(resto) < 5:
+                    next_sibling = elemento.find_next_sibling()
+                    if next_sibling:
+                        resto = next_sibling.get_text(strip=True)
+                
+                # Limpa o texto
+                if resto:
+                    resto = re.sub(r'\s+', ' ', resto)
+                    resto = re.sub(r'^Remessa\s*\d+\s*', '', resto)
+                    resto = re.sub(r'^RASTREAMENTO.*$', '', resto, flags=re.IGNORECASE)
+                    resto = re.sub(r'^Resultados.*$', '', resto, flags=re.IGNORECASE)
+                    
+                    if len(resto) > 3:
+                        eventos.append({
+                            'data': data,
+                            'hora': hora,
+                            'status': resto[:250]
+                        })
         
-        # Para cada ocorrência, pega o texto até a próxima ocorrência
-        for i, pos in enumerate(posicoes):
-            start_texto = pos['end']
-            if i + 1 < len(posicoes):
-                end_texto = posicoes[i + 1]['start']
-            else:
-                end_texto = len(response.text)
-            
-            # Extrai o texto entre as datas
-            texto_evento = response.text[start_texto:end_texto].strip()
-            
-            # Pega a primeira linha significativa
-            linhas = texto_evento.split('\n')
-            status_text = ""
-            for linha in linhas:
-                linha = linha.strip()
-                if linha and len(linha) > 3:
-                    # Filtra textos indesejados
-                    if not linha.startswith('RASTREAMENTO') and not linha.startswith('Resultados'):
-                        if not re.match(r'^Remessa\s*\d+$', linha, re.IGNORECASE):
-                            status_text = linha
-                            break
-            
-            # Se não encontrou com o método acima, tenta com regex
-            if not status_text:
-                # Tenta extrair usando regex para pegar o texto após a data
-                padrao_texto = re.compile(r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}:\d{2}\s*([^\n]+)')
-                match_texto = padrao_texto.search(response.text[pos['start']:pos['start']+500])
-                if match_texto:
-                    status_text = match_texto.group(1).strip()
-            
-            # Limpa o texto
-            if status_text:
+        # Se não encontrou eventos, tenta uma abordagem com regex diretamente no HTML
+        if not eventos:
+            padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^<]+)')
+            for match in padrao_evento.finditer(response.text):
+                data = match.group(1)
+                hora = match.group(2)
+                status_text = match.group(3).strip()
+                
+                # Limpa o texto
                 status_text = re.sub(r'\s+', ' ', status_text)
                 status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
                 status_text = re.sub(r'^RASTREAMENTO.*$', '', status_text, flags=re.IGNORECASE)
                 status_text = re.sub(r'^Resultados.*$', '', status_text, flags=re.IGNORECASE)
-                status_text = status_text[:250]
                 
                 if len(status_text) > 3:
                     eventos.append({
-                        'data': pos['data'],
-                        'hora': pos['hora'],
-                        'status': status_text
+                        'data': data,
+                        'hora': hora,
+                        'status': status_text[:250]
                     })
         
         # Atualiza status baseado no último evento
