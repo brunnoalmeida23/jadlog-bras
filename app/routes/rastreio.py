@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 import requests
-from bs4 import BeautifulSoup
 import re
 from app.services.sessao import sessoes
 
@@ -180,18 +179,7 @@ async def rastreio_page(request: Request):
             html += `<hr><div class="timeline">`;
             
             if (data.historico && data.historico.length > 0) {{
-                const eventosUnicos = [];
-                const vistos = new Set();
-                
                 data.historico.forEach(evento => {{
-                    const chave = `${{evento.data}}_${{evento.status.substring(0, 30)}}`;
-                    if (!vistos.has(chave) && evento.status && evento.status.length > 5) {{
-                        vistos.add(chave);
-                        eventosUnicos.push(evento);
-                    }}
-                }});
-                
-                eventosUnicos.forEach(evento => {{
                     let classe = '';
                     if (evento.status && evento.status.toLowerCase().includes('entregue')) {{
                         classe = 'status-entregue';
@@ -243,8 +231,6 @@ async def buscar_rastreio(codigo: str):
                 status_code=500,
                 content={"success": False, "message": "Erro ao acessar o site da Jadlog"}
             )
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
         
         eventos = []
         status_atual = "Em trânsito"
