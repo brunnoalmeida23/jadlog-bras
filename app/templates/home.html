@@ -2,80 +2,57 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row align-items-center">
-        <div class="col-lg-6">
-            <h1 class="display-4 fw-bold text-danger">
-                <i class="bi bi-truck me-3"></i>JADLOG BRÁS
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Título principal -->
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold" style="color: #E31E24;">
+                Bem-vindo ao sistema de cotação de fretes
             </h1>
-            <p class="lead">Sistema de Cotação de Frete</p>
-            <p class="text-muted">
-                Bem-vindo ao sistema de cotações da unidade da Av. Vautier, 455 - Brás, São Paulo.
-            </p>
-            <div class="d-flex gap-3 mt-4 flex-wrap">
-                <a href="/simulador" class="btn btn-jadlog btn-lg">
-                    <i class="bi bi-calculator me-2"></i>Simular Frete
-                </a>
-                <a href="/consulta" class="btn btn-jadlog-outline btn-lg">
-                    <i class="bi bi-search me-2"></i>Consultar
-                </a>
-                <a href="/rastreio" class="btn btn-outline-secondary btn-lg">
-                    <i class="bi bi-truck me-2"></i>Rastrear
-                </a>
-            </div>
         </div>
-        <div class="col-lg-6">
-            <div class="card-shadow">
-                <h5 class="fw-bold text-danger">
-                    <i class="bi bi-star-fill text-warning me-2"></i>
-                    Unidade Brás
-                </h5>
-                <div class="mb-3">
-                    <i class="bi bi-geo-alt text-danger me-2"></i>
-                    <strong>Av. Vautier, 455</strong>
-                    <br>
-                    <span class="text-muted">Brás - São Paulo - SP</span>
-                    <br>
-                    <span class="text-muted">CEP: 03000-000</span>
-                </div>
-                <hr>
-                <div class="row">
-                    <div class="col-6">
-                        <small class="text-muted">Horário de Funcionamento</small>
-                        <p class="fw-bold mb-0">Seg-Sex: 8h-18h</p>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted">Atendimento</small>
-                        <p class="fw-bold mb-0">📞 (11) 99999-9999</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row mt-5">
-        <div class="col-md-4">
-            <div class="card-shadow text-center">
-                <i class="bi bi-calculator display-4 text-danger mb-3"></i>
-                <h5>Simulação de Frete</h5>
-                <p class="text-muted">Calcule o valor do frete com base no peso, destino e modalidade.</p>
-                <a href="/simulador" class="btn btn-jadlog">Simular Agora</a>
+        <!-- Cards -->
+        <div class="row g-4">
+            <!-- Simulação -->
+            <div class="col-md-4">
+                <div class="card card-shadow h-100 text-center">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3" style="font-size: 3rem; color: #E31E24;">
+                            <i class="bi bi-calculator"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Simulação de Frete</h5>
+                        <p class="card-text text-muted">Calcule o valor do frete com base no peso, destino e modalidade.</p>
+                        <a href="/simulador" class="btn btn-jadlog mt-auto">Simular Agora</a>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card-shadow text-center">
-                <i class="bi bi-search display-4 text-danger mb-3"></i>
-                <h5>Consulta de Cotações</h5>
-                <p class="text-muted">Consulte cotações já realizadas por número de cotação.</p>
-                <a href="/consulta" class="btn btn-jadlog">Consultar</a>
+
+            <!-- Consulta -->
+            <div class="col-md-4">
+                <div class="card card-shadow h-100 text-center">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3" style="font-size: 3rem; color: #E31E24;">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Consulta de Cotações</h5>
+                        <p class="card-text text-muted">Consulte cotações já realizadas por número de cotação.</p>
+                        <a href="/consulta" class="btn btn-jadlog mt-auto">Consultar</a>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card-shadow text-center">
-                <i class="bi bi-truck display-4 text-danger mb-3"></i>
-                <h5>Rastreio</h5>
-                <p class="text-muted">Acompanhe o status da sua encomenda pelo código de rastreio.</p>
-                <a href="/rastreio" class="btn btn-jadlog">Rastrear</a>
+
+            <!-- Rastreio -->
+            <div class="col-md-4">
+                <div class="card card-shadow h-100 text-center">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3" style="font-size: 3rem; color: #E31E24;">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Rastreio</h5>
+                        <p class="card-text text-muted">Acompanhe o status da sua encomenda pelo código de rastreio.</p>
+                        <a href="/rastreio" class="btn btn-jadlog mt-auto">Rastrear</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
