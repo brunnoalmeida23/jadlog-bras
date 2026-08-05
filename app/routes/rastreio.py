@@ -1,16 +1,15 @@
 # app/routes/rastreio.py
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import requests
 from bs4 import BeautifulSoup
 import re
-from app.services.sessao import sessoes  # ADICIONADO
+from app.services.sessao import sessoes
 
 router = APIRouter(prefix="/rastreio", tags=["Rastreio"])
 
 @router.get("/", response_class=HTMLResponse)
 async def rastreio_page(request: Request):
-    # Verifica se o usuário está logado
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
     botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
