@@ -1,68 +1,54 @@
 # app/routes/simulador.py
-from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
-import re
-
-from app.services.frete_calculator import FreteCalculator
-from app.utils.helpers import gerar_cotacao_id
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+from app.routes.auth import sessoes  # Importa o dicionário de sessões
 
 router = APIRouter(prefix="/simulador", tags=["Simulador"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def simulador_page():
-    return """
+async def simulador_page(request: Request):
+    # Verifica se o usuário está logado pelo cookie
+    token = request.cookies.get("auth_token")
+    logado = token and token in sessoes
+    
+    # Menu (mostra Login ou Sair)
+    botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
+    
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JADLOG BRÁS - Simulador</title>
+    <title>Simulador | JADLOG BRÁS</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .bg-jadlog { background: #E31E24; }
-        .btn-jadlog { background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }
-        .btn-jadlog:hover { background: #B81217; color: white; }
-        .btn-jadlog:disabled { opacity: 0.6; cursor: not-allowed; }
-        .card-shadow { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }
-        .footer { background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }
-        .nav-link { color: white !important; }
-        .navbar-brand { color: white !important; font-weight: 700; }
-        .resultado-box { background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #E31E24; }
-        .badge-origem { background: #E31E24; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; display: inline-block; }
-        .badge-cotacao { background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; display: inline-block; cursor: pointer; }
-        .modalidade-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 2px solid #dee2e6;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        .modalidade-btn:hover { border-color: #E31E24; }
-        .modalidade-btn.active { border-color: #E31E24; background: #E31E24; color: white; }
-        .modalidade-btn.active:hover { background: #B81217; }
-        .valor-total { font-size: 2rem; font-weight: 800; color: #E31E24; }
-        .promocao-bras {
-            background: #f8f9fa;
-            border: 2px dashed #E31E24;
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 15px;
-            text-align: center;
-        }
-        .promocao-bras .titulo { color: #E31E24; font-weight: 600; font-size: 0.9rem; }
-        .promocao-bras .validade { color: #6c757d; font-size: 0.8rem; }
-        .detalhes-adicionais { font-size: 0.85rem; color: #6c757d; margin-top: 5px; }
-        .detalhes-adicionais span { font-weight: 600; color: #212529; }
+        .bg-jadlog {{ background: #E31E24; }}
+        .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog:hover {{ background: #B81217; color: white; }}
+        .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
+        .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
+        .nav-link {{ color: white !important; }}
+        .navbar-brand {{ color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }}
+        .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
+        .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
+        .nav-link.login-btn:hover {{ background: #f0f0f0; }}
+        .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
+        .result-box {{ background: #f8f9fa; border-radius: 8px; padding: 20px; margin-top: 20px; }}
+        .cotacao-item {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }}
+        .cotacao-item:last-child {{ border-bottom: none; }}
+        .total {{ font-weight: bold; font-size: 1.2rem; color: #E31E24; }}
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
-            <a class="navbar-brand" href="/">JADLOG BRÁS</a>
+            <a class="navbar-brand" href="/">
+                <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
+                <span class="brand-text">JADLOG BRÁS</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -72,164 +58,64 @@ async def simulador_page():
                     <li class="nav-item"><a class="nav-link" href="/simulador">Simulador</a></li>
                     <li class="nav-item"><a class="nav-link" href="/consulta">Consulta</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rastreio">Rastreio</a></li>
+                    <li class="nav-item">
+                        {botao_menu}
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
     <main class="container py-4">
-        <h2 class="fw-bold mb-4"><i class="bi bi-calculator text-danger me-2"></i>Simular Frete</h2>
-
-        <div class="row g-4">
-            <div class="col-lg-7">
-                <div class="card-shadow">
-                    <div class="mb-3">
-                        <label class="fw-bold">
-                            <i class="bi bi-geo-alt me-1"></i>
-                            CEP de Destino
-                        </label>
-                        <input type="text" class="form-control form-control-lg" id="cepDestino" 
-                               placeholder="Digite o CEP" maxlength="9" required>
-                        <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="fw-bold">
-                            <i class="bi bi-weight-scale me-1"></i>
-                            Peso (kg)
-                        </label>
-                        <input type="number" class="form-control form-control-lg" id="peso" 
-                               step="0.001" placeholder="Ex: 2.350" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="fw-bold">
-                            <i class="bi bi-receipt me-1"></i>
-                            Valor da NF (R$)
-                        </label>
-                        <input type="number" class="form-control form-control-lg" id="valorNF" 
-                               step="0.01" placeholder="Ex: 5000.00" required>
-                        <small class="text-muted">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="fw-bold">
-                            <i class="bi bi-box-seam me-1"></i>
-                            Modalidade
-                        </label>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="modalidade-btn active" id="btnPackage" onclick="selecionarModalidade('PACKAGE')">
-                                .PACKAGE
-                            </button>
-                            <button type="button" class="modalidade-btn" id="btnCom" onclick="selecionarModalidade('.COM')">
-                                .COM
-                            </button>
+        <div class="row">
+            <div class="col-lg-6">
+                <h2 class="mb-4" style="color: #E31E24;">Simular Frete</h2>
+                <div class="card card-shadow">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">CEP de Destino</label>
+                            <input type="text" class="form-control" id="cep" placeholder="Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)">
+                            <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
                         </div>
-                        <small class="text-muted">Selecione a modalidade desejada para o frete</small>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Peso (kg)</label>
+                            <input type="number" class="form-control" id="peso" placeholder="Ex: 2.350" step="0.001">
+                            <small class="text-muted">Ex: 2.350</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Valor da NF (R$)</label>
+                            <input type="number" class="form-control" id="valorNf" placeholder="Ex: 5000.00" step="0.01">
+                            <small class="text-muted">Ex: 5000.00</small>
+                            <small class="text-muted d-block">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Modalidade</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="modalidade" id="package" value="PACKAGE" checked>
+                                    <label class="form-check-label" for="package">PACKAGE</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="modalidade" id="com" value=".COM">
+                                    <label class="form-check-label" for="com">.COM</label>
+                                </div>
+                            </div>
+                            <small class="text-muted">Selecione a modalidade desejada para o frete</small>
+                        </div>
+                        <button class="btn btn-jadlog w-100" onclick="calcularFrete()">
+                            <i class="bi bi-calculator me-2"></i>Calcular Frete
+                        </button>
                     </div>
-
-                    <input type="hidden" id="modalidadeSelecionada" value="PACKAGE">
-                    
-                    <button type="button" class="btn btn-jadlog w-100 mt-3" id="btnCalcular" onclick="calcularFrete()">
-                        <i class="bi bi-calculator me-2"></i>
-                        Calcular Frete
-                    </button>
                 </div>
             </div>
 
-            <div class="col-lg-5">
-                <div class="card-shadow" id="resultadoArea">
-                    <h5 class="fw-bold">
-                        <i class="bi bi-file-text text-danger me-2"></i>
-                        Resultado da Cotação
-                    </h5>
-                    <div class="text-center text-muted py-5">
-                        <i class="bi bi-search fs-1 d-block mb-3"></i>
-                        <p>Preencha os dados ao lado<br>e clique em <strong>Calcular Frete</strong></p>
+            <div class="col-lg-6">
+                <h2 class="mb-4" style="color: #E31E24;">Resultado da Cotação</h2>
+                <div class="card card-shadow">
+                    <div class="card-body" id="resultado">
+                        <p class="text-muted text-center mb-0">Preencha os dados ao lado<br>e clique em Calcular Frete</p>
                     </div>
                 </div>
-                
-                <div class="card-shadow" id="resultadoDados" style="display:none;">
-                    <h5 class="fw-bold">
-                        <i class="bi bi-file-text text-danger me-2"></i>
-                        Resultado da Cotação
-                    </h5>
-                    <div class="mb-3">
-                        <span class="badge-cotacao" id="numeroCotacao">
-                            <i class="bi bi-hash me-1"></i>COT-2026-0001
-                        </span>
-                    </div>
-                    <div class="resultado-box">
-                        <div class="row">
-                            <div class="col-6">
-                                <small class="text-muted">Origem</small>
-                                <p class="fw-bold mb-0">Brás - SP</p>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Destino</small>
-                                <p class="fw-bold mb-0" id="resDestino">-</p>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-6">
-                                <small class="text-muted">Tipo</small>
-                                <p class="fw-bold mb-0" id="resTipo">-</p>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Prazo</small>
-                                <p class="fw-bold mb-0" id="resPrazo">-</p>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-6">
-                                <small class="text-muted">Peso</small>
-                                <p class="fw-bold mb-0" id="resPeso">-</p>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Modalidade</small>
-                                <p class="fw-bold mb-0" id="resModalidade">PACKAGE</p>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-6">
-                                <small class="text-muted">Valor do Frete</small>
-                                <p class="fw-bold text-success fs-5" id="resFrete">R$ -</p>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Seguro</small>
-                                <p class="fw-bold" id="resSeguro">R$ -</p>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <small class="text-muted">Frete Total</small>
-                                <p class="fw-bold fs-3 text-danger" id="resTotal">R$ -</p>
-                            </div>
-                        </div>
-                        <!-- Detalhes adicionais (opcional, pode ser mostrado para o revendedor) -->
-                        <div class="detalhes-adicionais mt-2" id="detalhesAdicionais" style="display:none;">
-                            <small>GLM: R$ <span id="resGLM">0.00</span> | Lucro: R$ <span id="resLucro">0.00</span></small>
-                        </div>
-                        <div class="promocao-bras">
-                            <div class="titulo">
-                                <i class="bi bi-star-fill text-warning me-1"></i>
-                                VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)
-                            </div>
-                            <div class="validade">
-                                <i class="bi bi-calendar me-1"></i>
-                                Válidos até Dezembro de 2026
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-outline-danger w-100 mt-2" onclick="limparResultado()">
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>
-                        Nova Cotação
-                    </button>
-                </div>
-
-                <div id="erroArea" style="display:none;" class="alert alert-danger mt-3"></div>
             </div>
         </div>
     </main>
@@ -239,163 +125,49 @@ async def simulador_page():
     </footer>
 
     <script>
-        // ===== MODALIDADE =====
-        function selecionarModalidade(modalidade) {
-            document.getElementById('modalidadeSelecionada').value = modalidade;
-            document.getElementById('btnPackage').classList.remove('active');
-            document.getElementById('btnCom').classList.remove('active');
-            if (modalidade === 'PACKAGE') {
-                document.getElementById('btnPackage').classList.add('active');
-            } else {
-                document.getElementById('btnCom').classList.add('active');
-            }
-        }
-
-        // ===== MÁSCARA CEP =====
-        document.getElementById('cepDestino').addEventListener('input', function(e) {
-            let value = this.value.replace(/\\D/g, '');
-            if (value.length > 5) {
-                value = value.substring(0, 5) + '-' + value.substring(5, 8);
-            }
-            this.value = value;
-        });
-
-        // ===== CALCULAR FRETE =====
         async function calcularFrete() {
-            const btn = document.getElementById('btnCalcular');
-            const cep = document.getElementById('cepDestino').value;
+            const cep = document.getElementById('cep').value;
             const peso = document.getElementById('peso').value;
-            const valorNF = document.getElementById('valorNF').value;
-            const modalidade = document.getElementById('modalidadeSelecionada').value;
+            const valorNf = document.getElementById('valorNf').value;
+            const modalidade = document.querySelector('input[name="modalidade"]:checked').value;
+            const resultado = document.getElementById('resultado');
             
-            // Validar
-            if (!cep) { alert('❌ Digite o CEP de destino'); return; }
-            if (!peso || peso <= 0) { alert('❌ Digite um peso válido'); return; }
-            if (!valorNF || valorNF <= 0) { alert('❌ Digite um valor de NF válido'); return; }
+            if (!cep || !peso) {
+                resultado.innerHTML = '<div class="alert alert-warning">Preencha CEP e Peso.</div>';
+                return;
+            }
             
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Calculando...';
-            
-            document.getElementById('resultadoDados').style.display = 'none';
-            document.getElementById('erroArea').style.display = 'none';
+            resultado.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"></div><p>Calculando...</p></div>';
             
             try {
-                const formData = new URLSearchParams();
-                formData.append('cep_destino', cep);
-                formData.append('peso', peso);
-                formData.append('valor_nf', valorNF);
-                formData.append('modalidade', modalidade);
-                formData.append('cliente_nome', 'Cliente Teste');
-                formData.append('cliente_documento', '');
+                const response = await fetch(`/api/calcular-frete?cep=${cep}&peso=${peso}&modalidade=${modalidade}&valor_nf=${valorNf || 0}`);
+                const data = await response.json();
                 
-                const response = await fetch('/simulador/calcular', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    const d = result.dados;
-                    document.getElementById('numeroCotacao').textContent = d.numero_cotacao;
-                    document.getElementById('resDestino').textContent = d.destino;
-                    document.getElementById('resTipo').textContent = d.tipo;
-                    document.getElementById('resPrazo').textContent = d.prazo;
-                    document.getElementById('resPeso').textContent = d.peso;
-                    document.getElementById('resModalidade').textContent = d.modalidade;
-                    document.getElementById('resFrete').textContent = 'R$ ' + d.valor_base.toFixed(2);
-                    document.getElementById('resSeguro').textContent = 'R$ ' + d.seguro.toFixed(2);
-                    document.getElementById('resTotal').textContent = 'R$ ' + d.total.toFixed(2);
-                    
-                    // Se o backend retornar GLM e Lucro, mostrar nos detalhes (opcional)
-                    if (d.glm !== undefined && d.lucro !== undefined) {
-                        document.getElementById('resGLM').textContent = d.glm.toFixed(2);
-                        document.getElementById('resLucro').textContent = d.lucro.toFixed(2);
-                        document.getElementById('detalhesAdicionais').style.display = 'block';
-                    }
-                    
-                    document.getElementById('resultadoDados').style.display = 'block';
+                if (data.success) {
+                    const d = data.dados;
+                    resultado.innerHTML = `
+                        <div class="result-box">
+                            <div class="cotacao-item"><span>CEP</span><span><strong>${d.cep}</strong></span></div>
+                            <div class="cotacao-item"><span>Destino</span><span><strong>${d.cidade}/${d.uf}</strong></span></div>
+                            <div class="cotacao-item"><span>Tipo</span><span><strong>${d.tipo_tarifa}</strong></span></div>
+                            <div class="cotacao-item"><span>Prazo</span><span><strong>${d.prazo} dias úteis</strong></span></div>
+                            <div class="cotacao-item"><span>Peso</span><span><strong>${d.peso} kg</strong></span></div>
+                            <div class="cotacao-item"><span>Modalidade</span><span><strong>${d.modalidade}</strong></span></div>
+                            <div class="cotacao-item"><span>GLM</span><span><strong>R$ ${d.glm}</strong></span></div>
+                            <div class="cotacao-item"><span>Lucro</span><span><strong>R$ ${d.lucro}</strong></span></div>
+                            <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${d.preco_final}</strong></span></div>
+                            <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${d.ad_valorem}</strong></span></div>
+                            <div class="cotacao-item total"><span>Frete Total</span><span>R$ ${d.total}</span></div>
+                        </div>
+                    `;
                 } else {
-                    const erro = document.getElementById('erroArea');
-                    erro.style.display = 'block';
-                    erro.textContent = '❌ ' + (result.message || 'Erro ao calcular frete');
+                    resultado.innerHTML = `<div class="alert alert-danger">${data.erro || 'Erro ao calcular frete'}</div>`;
                 }
             } catch (error) {
-                const erro = document.getElementById('erroArea');
-                erro.style.display = 'block';
-                erro.textContent = '❌ Erro ao conectar com o servidor. Tente novamente.';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-calculator me-2"></i> Calcular Frete';
+                resultado.innerHTML = '<div class="alert alert-danger">Erro ao conectar com o servidor.</div>';
             }
         }
-
-        function limparResultado() {
-            document.getElementById('resultadoDados').style.display = 'none';
-            document.getElementById('erroArea').style.display = 'none';
-            document.getElementById('cepDestino').value = '';
-            document.getElementById('peso').value = '';
-            document.getElementById('valorNF').value = '';
-            document.getElementById('detalhesAdicionais').style.display = 'none';
-        }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
     """
-
-
-@router.post("/calcular")
-async def calcular_frete(
-    cep_destino: str = Form(...),
-    peso: float = Form(...),
-    modalidade: str = Form("PACKAGE"),
-    valor_nf: float = Form(0.0),
-    cliente_nome: str = Form("Cliente não informado"),
-    cliente_documento: str = Form("")
-):
-    calculator = FreteCalculator()
-
-    cep_limpo = re.sub(r'\D', '', cep_destino)
-    if len(cep_limpo) != 8:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": "CEP inválido. Digite 8 dígitos."}
-        )
-
-    if peso <= 0:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": "Peso deve ser maior que zero."}
-        )
-
-    resultado = calculator.calcular(cep_limpo, peso, modalidade, valor_nf)
-
-    if "erro" in resultado:
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "message": resultado["erro"]}
-        )
-
-    numero_cotacao = gerar_cotacao_id()
-    d = resultado["dados"]
-
-    return {
-        "success": True,
-        "dados": {
-            "numero_cotacao": numero_cotacao,
-            "destino": f"{d['cidade']}/{d['uf']}",
-            "tipo": d["tipo_tarifa"],
-            "prazo": f"{d['prazo']} dias úteis",
-            "peso": f"{peso:.3f} kg",
-            "modalidade": modalidade,
-            "valor_base": d["preco_final"],  # PREÇO FINAL = GLM + LUCRO
-            "seguro": d["ad_valorem"],
-            "total": d["total"],
-            "glm": d.get("glm", 0.0),      # opcional, para detalhes
-            "lucro": d.get("lucro", 0.0),  # opcional, para detalhes
-            "cliente_nome": cliente_nome,
-            "cliente_documento": cliente_documento
-        }
-    }
