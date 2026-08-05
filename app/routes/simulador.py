@@ -150,8 +150,6 @@ async def simulador_page(request: Request):
                                 <div class="cotacao-item"><span>Prazo</span><span><strong>${{d.prazo}} dias úteis</strong></span></div>
                                 <div class="cotacao-item"><span>Peso</span><span><strong>${{d.peso}} kg</strong></span></div>
                                 <div class="cotacao-item"><span>Modalidade</span><span><strong>${{d.modalidade}}</strong></span></div>
-                                <div class="cotacao-item"><span>GLM</span><span><strong>R$ ${{d.glm}}</strong></span></div>
-                                <div class="cotacao-item"><span>Lucro</span><span><strong>R$ ${{d.lucro}}</strong></span></div>
                                 <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${{d.preco_final}}</strong></span></div>
                                 <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${{d.ad_valorem}}</strong></span></div>
                                 <div class="cotacao-item total"><span>Frete Total</span><span><strong>R$ ${{d.total}}</strong></span></div>
