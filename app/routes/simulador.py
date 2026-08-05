@@ -55,6 +55,8 @@ async def simulador_page():
         }
         .promocao-bras .titulo { color: #E31E24; font-weight: 600; font-size: 0.9rem; }
         .promocao-bras .validade { color: #6c757d; font-size: 0.8rem; }
+        .detalhes-adicionais { font-size: 0.85rem; color: #6c757d; margin-top: 5px; }
+        .detalhes-adicionais span { font-weight: 600; color: #212529; }
     </style>
 </head>
 <body>
@@ -205,6 +207,10 @@ async def simulador_page():
                                 <p class="fw-bold fs-3 text-danger" id="resTotal">R$ -</p>
                             </div>
                         </div>
+                        <!-- Detalhes adicionais (opcional, pode ser mostrado para o revendedor) -->
+                        <div class="detalhes-adicionais mt-2" id="detalhesAdicionais" style="display:none;">
+                            <small>GLM: R$ <span id="resGLM">0.00</span> | Lucro: R$ <span id="resLucro">0.00</span></small>
+                        </div>
                         <div class="promocao-bras">
                             <div class="titulo">
                                 <i class="bi bi-star-fill text-warning me-1"></i>
@@ -302,6 +308,13 @@ async def simulador_page():
                     document.getElementById('resSeguro').textContent = 'R$ ' + d.seguro.toFixed(2);
                     document.getElementById('resTotal').textContent = 'R$ ' + d.total.toFixed(2);
                     
+                    // Se o backend retornar GLM e Lucro, mostrar nos detalhes (opcional)
+                    if (d.glm !== undefined && d.lucro !== undefined) {
+                        document.getElementById('resGLM').textContent = d.glm.toFixed(2);
+                        document.getElementById('resLucro').textContent = d.lucro.toFixed(2);
+                        document.getElementById('detalhesAdicionais').style.display = 'block';
+                    }
+                    
                     document.getElementById('resultadoDados').style.display = 'block';
                 } else {
                     const erro = document.getElementById('erroArea');
@@ -324,6 +337,7 @@ async def simulador_page():
             document.getElementById('cepDestino').value = '';
             document.getElementById('peso').value = '';
             document.getElementById('valorNF').value = '';
+            document.getElementById('detalhesAdicionais').style.display = 'none';
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -376,9 +390,11 @@ async def calcular_frete(
             "prazo": f"{d['prazo']} dias úteis",
             "peso": f"{peso:.3f} kg",
             "modalidade": modalidade,
-            "valor_base": d["preco_final"],  # CORRIGIDO: agora usa "preco_final"
+            "valor_base": d["preco_final"],  # PREÇO FINAL = GLM + LUCRO
             "seguro": d["ad_valorem"],
             "total": d["total"],
+            "glm": d.get("glm", 0.0),      # opcional, para detalhes
+            "lucro": d.get("lucro", 0.0),  # opcional, para detalhes
             "cliente_nome": cliente_nome,
             "cliente_documento": cliente_documento
         }
