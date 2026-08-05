@@ -179,7 +179,19 @@ async def rastreio_page(request: Request):
             html += `<hr><div class="timeline">`;
             
             if (data.historico && data.historico.length > 0) {{
+                // Remove duplicatas
+                const eventosUnicos = [];
+                const vistos = new Set();
+                
                 data.historico.forEach(evento => {{
+                    const chave = `${{evento.data}}_${{evento.status.substring(0, 30)}}`;
+                    if (!vistos.has(chave) && evento.status && evento.status.length > 5) {{
+                        vistos.add(chave);
+                        eventosUnicos.push(evento);
+                    }}
+                }});
+                
+                eventosUnicos.forEach(evento => {{
                     let classe = '';
                     if (evento.status && evento.status.toLowerCase().includes('entregue')) {{
                         classe = 'status-entregue';
@@ -241,41 +253,39 @@ async def buscar_rastreio(codigo: str):
         if remessa_match:
             remessa = remessa_match.group(1)
         
-        # Buscar eventos com data e hora
-        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]*)')
+        # Buscar eventos com data, hora e texto (captura o texto até a próxima data)
+        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]+)')
         matches = padrao_evento.findall(response.text)
         
         for data, hora, status_text in matches:
             status_text = status_text.strip()
-            if status_text and not status_text.startswith('RASTREAMENTO'):
+            # Filtra textos indesejados
+            if status_text and not status_text.startswith('RASTREAMENTO') and not status_text.startswith('Resultados'):
                 eventos.append({
                     'data': data,
                     'hora': hora,
-                    'status': status_text[:200],
+                    'status': status_text[:250],
                 })
         
-        # Se não encontrou com esse padrão, tenta outro
+        # Se não encontrou com esse padrão, tenta o alternativo
         if not eventos:
-            padrao_alternativo = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
-            for match in padrao_alternativo.finditer(response.text):
+            padrao_alt = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})([^\n]+)')
+            for match in padrao_alt.finditer(response.text):
                 data = match.group(1)
                 hora = match.group(2)
-                start = match.end()
-                end = response.text.find('\n', start)
-                if end == -1:
-                    end = start + 100
-                status_text = response.text[start:end].strip()
-                if status_text and 'RASTREAMENTO' not in status_text and len(status_text) > 5:
+                status_text = match.group(3).strip()
+                status_text = re.sub(r'\s+', ' ', status_text)
+                if status_text and len(status_text) > 5:
                     eventos.append({
                         'data': data,
                         'hora': hora,
-                        'status': status_text[:200],
+                        'status': status_text[:250],
                     })
         
         # Atualiza status
         if eventos:
             ultimo_status = eventos[-1]['status'].lower()
-            if 'entregue' in ultimo_status or 'entregue' in eventos[-1]['status'].lower():
+            if 'entregue' in ultimo_status:
                 status_atual = "Entregue"
             elif 'coletado' in ultimo_status:
                 status_atual = "Coletado"
