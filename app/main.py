@@ -2,7 +2,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from starlette.middleware.sessions import SessionMiddleware  # ADICIONADO
 import os
 
 from app.routes import home, simulador, consulta, api, rastreio
@@ -14,14 +13,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ADICIONAR SESSION MIDDLEWARE
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="jadlog-bras-secret-key-2026",  # Troque por uma chave secreta real em produção
-    max_age=28800  # 8 horas de sessão
-)
-
-# Rotas
+# Rotas (ANTES DO MIDDLEWARE)
 app.include_router(home.router)
 app.include_router(simulador.router)
 app.include_router(consulta.router)
