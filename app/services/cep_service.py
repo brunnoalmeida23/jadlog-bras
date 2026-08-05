@@ -1,116 +1,110 @@
-﻿# app/services/cep_service.py
+﻿import pandas as pd
+import bisect
 import re
-import json
-import os
-
+from typing import Optional, Dict, Tuple
 
 class CEPService:
-    """Serviço para buscar informações de CEP"""
+    def __init__(self, arquivo_cidaten: str = "Cidaten_2026.xlsx"):
+        self.arquivo = arquivo_cidaten
+        self.dados = []  # (inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro)
+        self.inicios = []
+        self._carregar()
 
-    def __init__(self):
-        self.dados_cep = self._carregar_dados()
+    def _parse_intervalo(self, cep_str: str) -> Tuple[int, int]:
+        """Converte string de CEP para (inicio, fim) como inteiros."""
+        cep_str = cep_str.strip()
+        if ' a ' in cep_str:
+            partes = cep_str.split(' a ')
+            inicio = int(partes[0].strip())
+            fim = int(partes[1].strip())
+        else:
+            # Caso único
+            inicio = int(cep_str)
+            fim = inicio
+        return inicio, fim
 
-    def _carregar_dados(self):
-        """Carrega a base de dados de CEPs"""
-        dados = {
-            # ===== CAPITAIS =====
-            "01000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "02000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "03000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "04000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "05000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "06000000": {"cidade": "São Paulo", "uf": "SP", "tipo_tarifa": "CAPITAL", "prazo": 2},
-            "20000000": {"cidade": "Rio de Janeiro", "uf": "RJ", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "30000000": {"cidade": "Belo Horizonte", "uf": "MG", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "40000000": {"cidade": "Salvador", "uf": "BA", "tipo_tarifa": "CAPITAL", "prazo": 4},
-            "50000000": {"cidade": "Recife", "uf": "PE", "tipo_tarifa": "CAPITAL", "prazo": 4},
-            "60000000": {"cidade": "Fortaleza", "uf": "CE", "tipo_tarifa": "CAPITAL", "prazo": 4},
-            "70000000": {"cidade": "Brasília", "uf": "DF", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "80000000": {"cidade": "Curitiba", "uf": "PR", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "88000000": {"cidade": "Florianópolis", "uf": "SC", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "90000000": {"cidade": "Porto Alegre", "uf": "RS", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "29000000": {"cidade": "Vitória", "uf": "ES", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "74000000": {"cidade": "Goiânia", "uf": "GO", "tipo_tarifa": "CAPITAL", "prazo": 3},
-            "79000000": {"cidade": "Campo Grande", "uf": "MS", "tipo_tarifa": "CAPITAL", "prazo": 3},
+    def _carregar(self):
+        try:
+            df = pd.read_excel(self.arquivo, sheet_name="Cidaten", header=1)
+        except Exception as e:
+            raise RuntimeError(f"Erro ao carregar CIDATEN: {e}")
 
-            # ===== INTERIOR =====
-            "69900000": {"cidade": "Rio Branco", "uf": "AC", "tipo_tarifa": "INTERIOR", "prazo": 17},
-            "69945000": {"cidade": "Cruzeiro do Sul", "uf": "AC", "tipo_tarifa": "INTERIOR", "prazo": 38},
-            "69000000": {"cidade": "Manaus", "uf": "AM", "tipo_tarifa": "INTERIOR", "prazo": 18},
-            "68900000": {"cidade": "Macapá", "uf": "AP", "tipo_tarifa": "INTERIOR", "prazo": 17},
-            "66000000": {"cidade": "Belém", "uf": "PA", "tipo_tarifa": "INTERIOR", "prazo": 16},
-            "76800000": {"cidade": "Porto Velho", "uf": "RO", "tipo_tarifa": "INTERIOR", "prazo": 15},
-            "69300000": {"cidade": "Boa Vista", "uf": "RR", "tipo_tarifa": "INTERIOR", "prazo": 19},
-            "77000000": {"cidade": "Palmas", "uf": "TO", "tipo_tarifa": "INTERIOR", "prazo": 10},
-            "78000000": {"cidade": "Cuiabá", "uf": "MT", "tipo_tarifa": "INTERIOR", "prazo": 9},
-            "65000000": {"cidade": "São Luís", "uf": "MA", "tipo_tarifa": "INTERIOR", "prazo": 15},
-            "64000000": {"cidade": "Teresina", "uf": "PI", "tipo_tarifa": "INTERIOR", "prazo": 15},
-            "58000000": {"cidade": "João Pessoa", "uf": "PB", "tipo_tarifa": "INTERIOR", "prazo": 16},
-            "59000000": {"cidade": "Natal", "uf": "RN", "tipo_tarifa": "INTERIOR", "prazo": 11},
-            "49000000": {"cidade": "Aracaju", "uf": "SE", "tipo_tarifa": "INTERIOR", "prazo": 10},
-            "57000000": {"cidade": "Maceió", "uf": "AL", "tipo_tarifa": "INTERIOR", "prazo": 12},
-        }
+        # Mapeamento de colunas - ajuste se necessário
+        # As colunas são: UF, Localidade, Cep, Prazo Rodo, Tipo Tarifa, Frap (Fob), % Seguro
+        # Vamos usar índices ou nomes exatos
+        # A planilha tem cabeçalho: UF | Localidade | Cep | Prazo Rodo | Tipo Tarifa | Frap (Fob) | % Seguro
+        # Portanto, vamos acessar por posição ou nome
 
-        # Carregar CEPs extras se existir
-        cep_file = "ceps.json"
-        if os.path.exists(cep_file):
+        # Para garantir, vamos usar os nomes das colunas conforme aparecem
+        col_uf = 'UF'
+        col_localidade = 'Localidade'
+        col_cep = 'Cep'
+        col_prazo = 'Prazo Rodo'
+        col_tipo = 'Tipo Tarifa'
+        col_seguro = '% Seguro'
+
+        for idx, row in df.iterrows():
+            uf = str(row[col_uf]).strip()
+            localidade = str(row[col_localidade]).strip()
+            cep_str = str(row[col_cep]).strip()
+            prazo = int(row[col_prazo]) if pd.notna(row[col_prazo]) else 0
+            tipo = str(row[col_tipo]).strip()
+            seguro = float(row[col_seguro]) if pd.notna(row[col_seguro]) else 0.0066
+
+            inicio, fim = self._parse_intervalo(cep_str)
+            self.dados.append((inicio, fim, uf, localidade, tipo, prazo, seguro))
+
+        # Ordenar por início
+        self.dados.sort(key=lambda x: x[0])
+        self.inicios = [item[0] for item in self.dados]  # lista de inteiros
+
+    def buscar(self, cep):
+        """
+        Busca informações do CEP.
+        cep pode ser string (com ou sem hífen) ou inteiro.
+        Retorna dicionário ou None.
+        """
+        # Normalizar CEP para inteiro
+        if isinstance(cep, str):
+            cep_clean = re.sub(r'\D', '', cep)  # remove tudo que não é dígito
             try:
-                with open(cep_file, "r") as f:
-                    dados_extra = json.load(f)
-                    dados.update(dados_extra)
-            except:
-                pass
+                cep_int = int(cep_clean)
+            except ValueError:
+                return None
+        else:
+            cep_int = int(cep)
 
-        return dados
+        # Busca binária
+        pos = bisect.bisect_right(self.inicios, cep_int) - 1
+        if pos < 0:
+            return None
 
-    def buscar(self, cep: str) -> dict:
-        """Busca informações de um CEP"""
-        cep_limpo = re.sub(r'\D', '', cep)
+        inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro = self.dados[pos]
+        if cep_int < inicio or cep_int > fim:
+            # Verifica próximo
+            if pos + 1 < len(self.dados):
+                inicio2, fim2, uf2, localidade2, tipo_tarifa2, prazo2, seguro2 = self.dados[pos+1]
+                if inicio2 <= cep_int <= fim2:
+                    inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro = self.dados[pos+1]
+                else:
+                    return None
+            else:
+                return None
 
-        if cep_limpo in self.dados_cep:
-            return self.dados_cep[cep_limpo]
+        # Extrair regiao_interior se for Interior
+        regiao_interior = None
+        if "Interior" in tipo_tarifa:
+            match = re.search(r'\d+', tipo_tarifa)
+            if match:
+                regiao_interior = f"INT{match.group()}"
+            else:
+                regiao_interior = "INT1"
 
-        # Buscar por prefixo
-        prefixo = cep_limpo[:5]
-        for key, value in self.dados_cep.items():
-            if key.startswith(prefixo):
-                return value
-
-        # Buscar por UF (fallback)
-        uf = self._identificar_uf(cep_limpo)
-        if uf:
-            return {
-                "cidade": "Não identificada",
-                "uf": uf,
-                "tipo_tarifa": "CAPITAL",
-                "prazo": 5
-            }
-
-        return None
-
-    def _identificar_uf(self, cep: str) -> str:
-        """Identifica a UF pelo CEP"""
-        uf_por_prefixo = {
-            '01': 'SP', '02': 'SP', '03': 'SP', '04': 'SP', '05': 'SP',
-            '06': 'SP', '07': 'SP', '08': 'SP', '09': 'SP',
-            '10': 'SP', '11': 'SP', '12': 'SP', '13': 'SP', '14': 'SP',
-            '15': 'SP', '16': 'SP', '17': 'SP', '18': 'SP', '19': 'SP',
-            '20': 'RJ', '21': 'RJ', '22': 'RJ', '23': 'RJ', '24': 'RJ',
-            '25': 'RJ', '26': 'RJ', '27': 'RJ', '28': 'RJ', '29': 'ES',
-            '30': 'MG', '31': 'MG', '32': 'MG', '33': 'MG', '34': 'MG',
-            '35': 'MG', '36': 'MG', '37': 'MG', '38': 'MG', '39': 'MG',
-            '40': 'BA', '41': 'BA', '42': 'BA', '43': 'BA', '44': 'BA',
-            '45': 'BA', '46': 'BA', '47': 'BA', '48': 'BA', '49': 'SE',
-            '50': 'PE', '51': 'PE', '52': 'PE', '53': 'PE', '54': 'PE',
-            '55': 'PE', '56': 'PE', '57': 'AL', '58': 'PB', '59': 'RN',
-            '60': 'CE', '61': 'CE', '62': 'CE', '63': 'CE', '64': 'PI',
-            '65': 'MA', '66': 'PA', '67': 'PA', '68': 'PA', '69': 'AC',
-            '70': 'DF', '71': 'DF', '72': 'DF', '73': 'DF', '74': 'GO',
-            '75': 'GO', '76': 'GO', '77': 'TO', '78': 'MT', '79': 'MS',
-            '80': 'PR', '81': 'PR', '82': 'PR', '83': 'PR', '84': 'PR',
-            '85': 'PR', '86': 'PR', '87': 'PR', '88': 'SC', '89': 'SC',
-            '90': 'RS', '91': 'RS', '92': 'RS', '93': 'RS', '94': 'RS',
-            '95': 'RS', '96': 'RS', '97': 'RS', '98': 'RS', '99': 'RS'
+        return {
+            "uf": uf,
+            "cidade": localidade,
+            "tipo_tarifa": tipo_tarifa,
+            "regiao_interior": regiao_interior,
+            "prazo": prazo,
+            "seguro_percentual": seguro,
         }
-        prefixo = cep[:2]
-        return uf_por_prefixo.get(prefixo, 'SP')
