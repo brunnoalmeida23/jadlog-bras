@@ -1,15 +1,21 @@
 # app/routes/rastreio.py
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import requests
 from bs4 import BeautifulSoup
 import re
+from app.services.sessao import sessoes  # ADICIONADO
 
 router = APIRouter(prefix="/rastreio", tags=["Rastreio"])
 
 @router.get("/", response_class=HTMLResponse)
 async def rastreio_page(request: Request):
-    return """
+    # Verifica se o usuário está logado
+    token = request.cookies.get("auth_token")
+    logado = token and token in sessoes
+    botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
+    
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -19,36 +25,36 @@ async def rastreio_page(request: Request):
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .bg-jadlog { background: #E31E24; }
-        .btn-jadlog { background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }
-        .btn-jadlog:hover { background: #B81217; color: white; }
-        .card-shadow { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }
-        .footer { background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }
-        .nav-link { color: white !important; }
-        .navbar-brand { color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .logo-img { height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }
-        .nav-link.login-btn { background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }
-        .nav-link.login-btn:hover { background: #f0f0f0; }
-        .brand-text { color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }
-        .evento-item { 
+        .bg-jadlog {{ background: #E31E24; }}
+        .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog:hover {{ background: #B81217; color: white; }}
+        .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
+        .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
+        .nav-link {{ color: white !important; }}
+        .navbar-brand {{ color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }}
+        .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
+        .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
+        .nav-link.login-btn:hover {{ background: #f0f0f0; }}
+        .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
+        .evento-item {{ 
             border-left: 4px solid #E31E24; 
             margin-bottom: 12px; 
             padding: 10px 15px; 
             background: #f8f9fa;
             border-radius: 0 8px 8px 0;
-        }
-        .evento-item .data { font-size: 0.85rem; color: #6c757d; font-weight: 600; }
-        .evento-item .status { font-weight: 500; font-size: 0.95rem; }
-        .status-entregue { color: #28a745; }
-        .status-transito { color: #ffc107; }
-        .status-coletado { color: #17a2b8; }
-        .loading { text-align: center; padding: 30px; }
-        .loading .spinner { animation: spin 1s linear infinite; font-size: 2rem; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .card-resultado { background: #fff; border-radius: 12px; padding: 20px; margin-top: 20px; }
-        .badge-entregue { background: #28a745; color: white; padding: 6px 14px; border-radius: 20px; }
-        .badge-transito { background: #ffc107; color: #212529; padding: 6px 14px; border-radius: 20px; }
-        .badge-coletado { background: #17a2b8; color: white; padding: 6px 14px; border-radius: 20px; }
+        }}
+        .evento-item .data {{ font-size: 0.85rem; color: #6c757d; font-weight: 600; }}
+        .evento-item .status {{ font-weight: 500; font-size: 0.95rem; }}
+        .status-entregue {{ color: #28a745; }}
+        .status-transito {{ color: #ffc107; }}
+        .status-coletado {{ color: #17a2b8; }}
+        .loading {{ text-align: center; padding: 30px; }}
+        .loading .spinner {{ animation: spin 1s linear infinite; font-size: 2rem; }}
+        @keyframes spin {{ 100% {{ transform: rotate(360deg); }} }}
+        .card-resultado {{ background: #fff; border-radius: 12px; padding: 20px; margin-top: 20px; }}
+        .badge-entregue {{ background: #28a745; color: white; padding: 6px 14px; border-radius: 20px; }}
+        .badge-transito {{ background: #ffc107; color: #212529; padding: 6px 14px; border-radius: 20px; }}
+        .badge-coletado {{ background: #17a2b8; color: white; padding: 6px 14px; border-radius: 20px; }}
     </style>
 </head>
 <body>
@@ -67,7 +73,9 @@ async def rastreio_page(request: Request):
                     <li class="nav-item"><a class="nav-link" href="/simulador">Simulador</a></li>
                     <li class="nav-item"><a class="nav-link" href="/consulta">Consulta</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rastreio">Rastreio</a></li>
-                    <li class="nav-item"><a class="nav-link login-btn" href="/login">Login</a></li>
+                    <li class="nav-item">
+                        {botao_menu}
+                    </li>
                 </ul>
             </div>
         </div>
@@ -109,106 +117,106 @@ async def rastreio_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function buscarRastreio() {
+        function buscarRastreio() {{
             const codigo = document.getElementById('codigoRastreio').value.trim();
             const resultado = document.getElementById('resultado');
             
-            if (!codigo) {
+            if (!codigo) {{
                 resultado.innerHTML = '<div class="alert alert-warning">Digite um código de rastreio.</div>';
                 return;
-            }
+            }}
             
             resultado.innerHTML = `
                 <div class="loading">
                     <div class="spinner">⏳</div>
-                    <p class="mt-2">Buscando rastreio para o código ${codigo}...</p>
+                    <p class="mt-2">Buscando rastreio para o código ${{codigo}}...</p>
                 </div>
             `;
             
-            fetch(`/rastreio/buscar?codigo=${encodeURIComponent(codigo)}`)
+            fetch(`/rastreio/buscar?codigo=${{encodeURIComponent(codigo)}}`)
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
+                .then(data => {{
+                    if (data.success) {{
                         exibirResultado(data);
-                    } else {
-                        resultado.innerHTML = `<div class="alert alert-danger">${data.message || 'Erro ao buscar rastreio'}</div>`;
-                    }
-                })
-                .catch(() => {
+                    }} else {{
+                        resultado.innerHTML = `<div class="alert alert-danger">${{data.message || 'Erro ao buscar rastreio'}}</div>`;
+                    }}
+                }})
+                .catch(() => {{
                     resultado.innerHTML = `<div class="alert alert-danger">Erro ao buscar rastreio. Tente novamente.</div>`;
-                });
-        }
+                }});
+        }}
         
-        function exibirResultado(data) {
+        function exibirResultado(data) {{
             const resultado = document.getElementById('resultado');
             
             let badgeClass = 'badge-transito';
             let statusText = 'Em trânsito';
             
-            if (data.status && data.status.toLowerCase().includes('entregue')) {
+            if (data.status && data.status.toLowerCase().includes('entregue')) {{
                 badgeClass = 'badge-entregue';
                 statusText = 'Entregue';
-            } else if (data.status && data.status.toLowerCase().includes('coletado')) {
+            }} else if (data.status && data.status.toLowerCase().includes('coletado')) {{
                 badgeClass = 'badge-coletado';
                 statusText = 'Coletado';
-            }
+            }}
             
             let html = `
                 <div class="card card-resultado">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                        <h5 class="mb-0"><i class="bi bi-box"></i> Código: <strong>${data.codigo}</strong></h5>
-                        <span class="${badgeClass} fs-6">${statusText}</span>
+                        <h5 class="mb-0"><i class="bi bi-box"></i> Código: <strong>${{data.codigo}}</strong></h5>
+                        <span class="${{badgeClass}} fs-6">${{statusText}}</span>
                     </div>
             `;
             
-            if (data.remessa) {
+            if (data.remessa) {{
                 html += `
                     <div class="mb-3">
                         <span class="text-muted">Remessa:</span>
-                        <strong>${data.remessa}</strong>
+                        <strong>${{data.remessa}}</strong>
                     </div>
                 `;
-            }
+            }}
             
             html += `<hr><div class="timeline">`;
             
-            if (data.historico && data.historico.length > 0) {
+            if (data.historico && data.historico.length > 0) {{
                 const eventosUnicos = [];
                 const vistos = new Set();
                 
-                data.historico.forEach(evento => {
-                    const chave = `${evento.data}_${evento.status.substring(0, 30)}`;
-                    if (!vistos.has(chave) && evento.status && evento.status.length > 5) {
+                data.historico.forEach(evento => {{
+                    const chave = `${{evento.data}}_${{evento.status.substring(0, 30)}}`;
+                    if (!vistos.has(chave) && evento.status && evento.status.length > 5) {{
                         vistos.add(chave);
                         eventosUnicos.push(evento);
-                    }
-                });
+                    }}
+                }});
                 
-                eventosUnicos.forEach(evento => {
+                eventosUnicos.forEach(evento => {{
                     let classe = '';
-                    if (evento.status && evento.status.toLowerCase().includes('entregue')) {
+                    if (evento.status && evento.status.toLowerCase().includes('entregue')) {{
                         classe = 'status-entregue';
-                    } else if (evento.status && evento.status.toLowerCase().includes('coletado')) {
+                    }} else if (evento.status && evento.status.toLowerCase().includes('coletado')) {{
                         classe = 'status-coletado';
-                    }
+                    }}
                     
                     html += `
                         <div class="evento-item">
-                            <div class="data">${evento.data || ''} ${evento.hora || ''}</div>
-                            <div class="status ${classe}">${evento.status || 'Evento'}</div>
+                            <div class="data">${{evento.data || ''}} ${{evento.hora || ''}}</div>
+                            <div class="status ${{classe}}">${{evento.status || 'Evento'}}</div>
                         </div>
                     `;
-                });
-            } else {
+                }});
+            }} else {{
                 html += `<div class="text-muted">Nenhum evento encontrado.</div>`;
-            }
+            }}
             
             html += `
                     </div>
                 </div>
             `;
             resultado.innerHTML = html;
-        }
+        }}
     </script>
 </body>
 </html>
@@ -237,7 +245,6 @@ async def buscar_rastreio(codigo: str):
                 content={"success": False, "message": "Erro ao acessar o site da Jadlog"}
             )
         
-        # Parse do HTML
         soup = BeautifulSoup(response.text, 'html.parser')
         
         eventos = []
@@ -245,71 +252,45 @@ async def buscar_rastreio(codigo: str):
         remessa = ""
         
         # Extrair remessa
-        remessa_elem = soup.find(string=re.compile(r'Remessa'))
-        if remessa_elem:
-            remessa_text = remessa_elem.parent.get_text(strip=True) if remessa_elem.parent else str(remessa_elem)
-            remessa_match = re.search(r'(\d+)', remessa_text)
-            if remessa_match:
-                remessa = remessa_match.group(1)
+        remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', response.text)
+        if remessa_match:
+            remessa = remessa_match.group(1)
         
-        # Buscar todos os elementos que contêm data
-        padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+        # Buscar eventos com data e hora
+        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]*)')
+        matches = padrao_evento.findall(response.text)
         
-        # Procurar em elementos específicos que podem conter os eventos
-        for elemento in soup.find_all(['div', 'p', 'li', 'td', 'span']):
-            texto = elemento.get_text(strip=True)
-            match = padrao_data.search(texto)
-            if match:
-                data = match.group(1)
-                hora = match.group(2)
-                
-                # Pega o texto após a data/hora
-                resto = texto[match.end():].strip()
-                # Se o resto estiver vazio, tenta pegar do próximo elemento irmão
-                if not resto or len(resto) < 5:
-                    next_sibling = elemento.find_next_sibling()
-                    if next_sibling:
-                        resto = next_sibling.get_text(strip=True)
-                
-                # Limpa o texto
-                if resto:
-                    resto = re.sub(r'\s+', ' ', resto)
-                    resto = re.sub(r'^Remessa\s*\d+\s*', '', resto)
-                    resto = re.sub(r'^RASTREAMENTO.*$', '', resto, flags=re.IGNORECASE)
-                    resto = re.sub(r'^Resultados.*$', '', resto, flags=re.IGNORECASE)
-                    
-                    if len(resto) > 3:
-                        eventos.append({
-                            'data': data,
-                            'hora': hora,
-                            'status': resto[:250]
-                        })
+        for data, hora, status_text in matches:
+            status_text = status_text.strip()
+            if status_text and not status_text.startswith('RASTREAMENTO'):
+                eventos.append({
+                    'data': data,
+                    'hora': hora,
+                    'status': status_text[:200],
+                })
         
-        # Se não encontrou eventos, tenta uma abordagem com regex diretamente no HTML
+        # Se não encontrou com esse padrão, tenta outro
         if not eventos:
-            padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^<]+)')
-            for match in padrao_evento.finditer(response.text):
+            padrao_alternativo = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+            for match in padrao_alternativo.finditer(response.text):
                 data = match.group(1)
                 hora = match.group(2)
-                status_text = match.group(3).strip()
-                
-                # Limpa o texto
-                status_text = re.sub(r'\s+', ' ', status_text)
-                status_text = re.sub(r'^Remessa\s*\d+\s*', '', status_text)
-                status_text = re.sub(r'^RASTREAMENTO.*$', '', status_text, flags=re.IGNORECASE)
-                status_text = re.sub(r'^Resultados.*$', '', status_text, flags=re.IGNORECASE)
-                
-                if len(status_text) > 3:
+                start = match.end()
+                end = response.text.find('\n', start)
+                if end == -1:
+                    end = start + 100
+                status_text = response.text[start:end].strip()
+                if status_text and 'RASTREAMENTO' not in status_text and len(status_text) > 5:
                     eventos.append({
                         'data': data,
                         'hora': hora,
-                        'status': status_text[:250]
+                        'status': status_text[:200],
                     })
         
-        # Atualiza status baseado no último evento
+        # Atualiza status
         if eventos:
             ultimo_status = eventos[-1]['status'].lower()
-            if 'entregue' in ultimo_status:
+            if 'entregue' in ultimo_status or 'entregue' in eventos[-1]['status'].lower():
                 status_atual = "Entregue"
             elif 'coletado' in ultimo_status:
                 status_atual = "Coletado"
