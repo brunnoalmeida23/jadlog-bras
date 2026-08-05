@@ -1,220 +1,82 @@
-﻿from __future__ import annotations
-
+# app/routes/simulador.py
+from fastapi import APIRouter, Request, Form
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 import os
 import re
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-
-from app.services.api_frete_externa import (
-    ErroApiFrete,
-    consultar_frete,
-)
-from app.services.cep_service import CEPService
-from app.services.comissao_service import (
-    ErroComissao,
-    aplicar_comissao,
-)
+from app.services.frete_calculator import FreteCalculator
 from app.utils.helpers import gerar_cotacao_id
 
+router = APIRouter(prefix="/simulador", tags=["Simulador"])
 
-router = APIRouter(
-    prefix="/simulador",
-    tags=["Simulador"],
-)
-
-templates_dir = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "templates",
-)
-
-templates = Jinja2Templates(
-    directory=templates_dir
-)
-
-cep_service = CEPService()
+templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 
 @router.get("/", response_class=HTMLResponse)
 async def simulador_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="simulador.html",
-        context={},
-    )
+    """Página do simulador"""
+    return templates.TemplateResponse("simulador.html", {"request": request})
 
 
 @router.post("/calcular")
 async def calcular_frete(
     cep_destino: str = Form(...),
     peso: float = Form(...),
-    valor_nf: float = Form(...),
-    volumes: int = Form(1),
-    cliente_nome: str = Form(
-        "Cliente não informado"
-    ),
-    cliente_documento: str = Form(""),
+    modalidade: str = Form("PACKAGE"),
+    valor_nf: float = Form(0.0),
+    cliente_nome: str = Form("Cliente não informado"),
+    cliente_documento: str = Form("")
 ):
-    cep_limpo = re.sub(
-        r"\D",
-        "",
-        str(cep_destino),
-    )
+    """Calcula o frete usando a regra completa"""
+    calculator = FreteCalculator()
 
+    # Limpar CEP
+    cep_limpo = re.sub(r'\D', '', cep_destino)
     if len(cep_limpo) != 8:
         return JSONResponse(
             status_code=400,
-            content={
-                "success": False,
-                "message": (
-                    "CEP inválido. Digite 8 números."
-                ),
-            },
+            content={"success": False, "message": "CEP inválido. Digite 8 dígitos."}
         )
 
     if peso <= 0:
         return JSONResponse(
             status_code=400,
-            content={
-                "success": False,
-                "message": (
-                    "O peso deve ser maior que zero."
-                ),
-            },
+            content={"success": False, "message": "Peso deve ser maior que zero."}
         )
 
-    if valor_nf < 0:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "message": (
-                    "O valor da nota não pode ser negativo."
-                ),
-            },
-        )
+    # Calcular frete
+    resultado = calculator.calcular(cep_limpo, peso, modalidade, valor_nf)
 
-    if volumes <= 0:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "message": (
-                    "Volumes deve ser maior que zero."
-                ),
-            },
-        )
-
-    info_cep = cep_service.buscar(cep_limpo)
-
-    if not info_cep:
+    if "erro" in resultado:
         return JSONResponse(
             status_code=404,
-            content={
-                "success": False,
-                "message": (
-                    "CEP não localizado na base tarifária."
-                ),
-            },
+            content={"success": False, "message": resultado["erro"]}
         )
 
-    uf = str(
-        info_cep.get("uf", "")
-    ).strip().upper()
-
-    tipo_tarifa = str(
-        info_cep.get("tipo_tarifa", "")
-    ).strip()
-
-    if not uf or not tipo_tarifa:
-        return JSONResponse(
-            status_code=422,
-            content={
-                "success": False,
-                "message": (
-                    "O CEP não possui UF ou tabela "
-                    "tarifária válida."
-                ),
-            },
-        )
-
-    try:
-        frete_api = await consultar_frete(
-            cep_destino=cep_limpo,
-            peso=peso,
-            valor_nf=valor_nf,
-        )
-
-        package = aplicar_comissao(
-            valor_api=frete_api["package"],
-            modalidade="PACKAGE",
-            tipo_tarifa=tipo_tarifa,
-            uf=uf,
-            peso=peso,
-        )
-
-        com = aplicar_comissao(
-            valor_api=frete_api["com"],
-            modalidade=".COM",
-            tipo_tarifa=tipo_tarifa,
-            uf=uf,
-            peso=peso,
-        )
-
-    except ErroApiFrete as erro:
-        return JSONResponse(
-            status_code=502,
-            content={
-                "success": False,
-                "message": str(erro),
-            },
-        )
-
-    except ErroComissao as erro:
-        return JSONResponse(
-            status_code=422,
-            content={
-                "success": False,
-                "message": (
-                    f"Erro na comissão: {erro}"
-                ),
-            },
-        )
-
+    # Gerar número da cotação
     numero_cotacao = gerar_cotacao_id()
 
-    cidade = str(
-        info_cep.get("cidade", "")
-    ).strip()
+    # Dados do resultado
+    d = resultado["dados"]
 
     return {
         "success": True,
         "dados": {
             "numero_cotacao": numero_cotacao,
-            "cep": cep_limpo,
-            "destino": f"{cidade}/{uf}",
-            "cidade": cidade,
-            "uf": uf,
-            "tipo": tipo_tarifa,
-            "prazo": info_cep.get("prazo"),
-            "peso": peso,
-            "volumes": volumes,
-            "valor_nf": valor_nf,
-
-            # Estes dois campos continuam sendo usados
-            # pela tela, PDF e impressão.
-            # Agora já contêm API + comissão.
-            "package": package["valor_final"],
-            "com": com["valor_final"],
-
-            # Detalhamento interno para auditoria.
-            "package_base": package["valor_api"],
-            "package_comissao": package["comissao"],
-            "com_base": com["valor_api"],
-            "com_comissao": com["comissao"],
-
+            "destino": f"{d['cidade']}/{d['uf']}",
+            "tipo": d["tipo_tarifa"],
+            "regiao": d["regiao"],
+            "prazo": f"{d['prazo']} dias úteis",
+            "peso": f"{peso:.3f} kg",
+            "modalidade": modalidade,
+            "glm": d["glm"],
+            "lucro_cliente": d["lucro_cliente"],
+            "valor_base": d["final"],
+            "seguro": d["ad_valorem"],
+            "total": d["total"],
             "cliente_nome": cliente_nome,
-            "cliente_documento": cliente_documento,
-        },
+            "cliente_documento": cliente_documento
+        }
     }
