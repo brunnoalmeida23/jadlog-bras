@@ -2,17 +2,21 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
+import secrets
 
 router = APIRouter(prefix="", tags=["Autenticação"])
 
-# Senha fixa (em produção, use variável de ambiente)
 SENHA_CORRETA = os.getenv("FUNCIONARIO_SENHA", "JadLog2026")
+
+# Armazenamento temporário de sessões (em produção, use Redis ou banco de dados)
+sessoes = {}
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def pagina_login(request: Request):
-    # Se já estiver autenticado, redireciona para o simulador
-    if request.session.get("autenticado"):
+    # Verifica se o usuário já está autenticado pelo cookie
+    token = request.cookies.get("auth_token")
+    if token and token in sessoes:
         return RedirectResponse(url="/simulador", status_code=303)
     
     return """
@@ -134,13 +138,21 @@ async def realizar_login(request: Request, senha: str = Form(...)):
     if senha != SENHA_CORRETA:
         return {"erro": "Senha incorreta."}
     
-    request.session.clear()
-    request.session["autenticado"] = True
+    # Gera um token aleatório
+    token = secrets.token_urlsafe(32)
+    sessoes[token] = True
     
-    return RedirectResponse(url="/simulador", status_code=303)
+    response = RedirectResponse(url="/simulador", status_code=303)
+    response.set_cookie(key="auth_token", value=token, max_age=28800, httponly=True)
+    return response
 
 
 @router.get("/logout")
 async def logout(request: Request):
-    request.session.clear()
-    return RedirectResponse(url="/login", status_code=303)
+    token = request.cookies.get("auth_token")
+    if token in sessoes:
+        del sessoes[token]
+    
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("auth_token")
+    return response
