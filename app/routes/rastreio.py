@@ -32,14 +32,13 @@ async def rastreio_page(request: Request):
         .brand-text { color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }
         .evento-item { 
             border-left: 4px solid #E31E24; 
-            margin-bottom: 15px; 
+            margin-bottom: 12px; 
             padding: 10px 15px; 
             background: #f8f9fa;
             border-radius: 0 8px 8px 0;
         }
         .evento-item .data { font-size: 0.85rem; color: #6c757d; font-weight: 600; }
-        .evento-item .status { font-weight: 600; font-size: 1rem; }
-        .evento-item .remessa { font-size: 0.85rem; color: #495057; }
+        .evento-item .status { font-weight: 500; font-size: 0.95rem; }
         .status-entregue { color: #28a745; }
         .status-transito { color: #ffc107; }
         .status-coletado { color: #17a2b8; }
@@ -47,6 +46,9 @@ async def rastreio_page(request: Request):
         .loading .spinner { animation: spin 1s linear infinite; font-size: 2rem; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .card-resultado { background: #fff; border-radius: 12px; padding: 20px; margin-top: 20px; }
+        .badge-entregue { background: #28a745; color: white; padding: 6px 14px; border-radius: 20px; }
+        .badge-transito { background: #ffc107; color: #212529; padding: 6px 14px; border-radius: 20px; }
+        .badge-coletado { background: #17a2b8; color: white; padding: 6px 14px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -140,30 +142,50 @@ async def rastreio_page(request: Request):
         function exibirResultado(data) {
             const resultado = document.getElementById('resultado');
             
-            let statusClass = 'status-transito';
+            let badgeClass = 'badge-transito';
             let statusText = 'Em trânsito';
             
             if (data.status && data.status.toLowerCase().includes('entregue')) {
-                statusClass = 'status-entregue';
+                badgeClass = 'badge-entregue';
                 statusText = 'Entregue';
             } else if (data.status && data.status.toLowerCase().includes('coletado')) {
-                statusClass = 'status-coletado';
+                badgeClass = 'badge-coletado';
                 statusText = 'Coletado';
             }
             
             let html = `
                 <div class="card card-resultado">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                         <h5 class="mb-0"><i class="bi bi-box"></i> Código: <strong>${data.codigo}</strong></h5>
-                        <span class="badge ${statusClass} fs-6">${statusText}</span>
+                        <span class="${badgeClass} fs-6">${statusText}</span>
                     </div>
-                    ${data.remessa ? `<p class="text-muted small">Remessa: ${data.remessa}</p>` : ''}
-                    <hr>
-                    <div class="timeline">
             `;
             
+            if (data.remessa) {
+                html += `
+                    <div class="mb-3">
+                        <span class="text-muted">Remessa:</span>
+                        <strong>${data.remessa}</strong>
+                    </div>
+                `;
+            }
+            
+            html += `<hr><div class="timeline">`;
+            
             if (data.historico && data.historico.length > 0) {
+                // Remove eventos duplicados baseados na data + status
+                const eventosUnicos = [];
+                const vistos = new Set();
+                
                 data.historico.forEach(evento => {
+                    const chave = `${evento.data}_${evento.status.substring(0, 30)}`;
+                    if (!vistos.has(chave)) {
+                        vistos.add(chave);
+                        eventosUnicos.push(evento);
+                    }
+                });
+                
+                eventosUnicos.forEach(evento => {
                     let classe = '';
                     if (evento.status && evento.status.toLowerCase().includes('entregue')) {
                         classe = 'status-entregue';
@@ -175,7 +197,6 @@ async def rastreio_page(request: Request):
                         <div class="evento-item">
                             <div class="data">${evento.data || ''} ${evento.hora || ''}</div>
                             <div class="status ${classe}">${evento.status || 'Evento'}</div>
-                            ${evento.local ? `<div class="text-muted small">${evento.local}</div>` : ''}
                         </div>
                     `;
                 });
@@ -219,71 +240,61 @@ async def buscar_rastreio(codigo: str):
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Buscar eventos
         eventos = []
         status_atual = "Em trânsito"
         remessa = ""
         
-        # Buscar remessa
-        remessa_elem = soup.find(string=re.compile(r'Remessa'))
-        if remessa_elem:
-            remessa_text = remessa_elem.parent.get_text(strip=True) if remessa_elem.parent else remessa_elem
-            remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', remessa_text)
-            if remessa_match:
-                remessa = remessa_match.group(1)
+        # Extrair remessa
+        remessa_match = re.search(r'Remessa\s*[\n\r]*\s*(\d+)', response.text)
+        if remessa_match:
+            remessa = remessa_match.group(1)
         
-        # Buscar todos os blocos de eventos
-        # O site da Jadlog lista eventos em ordem cronológica
-        eventos_blocos = soup.find_all(['div', 'p', 'li'], class_=re.compile(r'event|status|track|row|item|result|list', re.I))
+        # Buscar eventos com data e hora
+        # Padrão: DD/MM/YYYY - HH:MM seguido de texto
+        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]*)')
+        matches = padrao_evento.findall(response.text)
         
-        # Se não encontrar por classe, busca por padrão de data
-        if not eventos_blocos:
-            textos = soup.find_all(text=re.compile(r'\d{2}/\d{2}/\d{4}'))
-            for texto in textos:
-                data_match = re.search(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})?', texto)
-                if data_match:
-                    parent = texto.parent
-                    status_text = parent.get_text(strip=True) if parent else texto
-                    # Remove a data do status
-                    status_text = re.sub(r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}:\d{2}\s*', '', status_text).strip()
+        for data, hora, status_text in matches:
+            # Limpa o status_text removendo lixo
+            status_text = status_text.strip()
+            if status_text and not status_text.startswith('RASTREAMENTO'):
+                eventos.append({
+                    'data': data,
+                    'hora': hora,
+                    'status': status_text[:200],
+                })
+        
+        # Se não encontrou com esse padrão, tenta outro
+        if not eventos:
+            padrao_alternativo = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+            for match in padrao_alternativo.finditer(response.text):
+                data = match.group(1)
+                hora = match.group(2)
+                # Pega o texto após a data
+                start = match.end()
+                end = response.text.find('\n', start)
+                if end == -1:
+                    end = start + 100
+                status_text = response.text[start:end].strip()
+                if status_text and 'RASTREAMENTO' not in status_text and len(status_text) > 5:
                     eventos.append({
-                        'data': data_match.group(1),
-                        'hora': data_match.group(2) if data_match.group(2) else '',
-                        'status': status_text,
-                        'local': ''
+                        'data': data,
+                        'hora': hora,
+                        'status': status_text[:200],
                     })
         
-        # Se não encontrou, tenta outra abordagem
-        if not eventos:
-            # Busca por elementos que contêm data
-            elementos = soup.find_all(['div', 'p', 'li', 'span'])
-            for el in elementos:
-                texto = el.get_text(strip=True)
-                data_match = re.search(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})', texto)
-                if data_match:
-                    status_text = re.sub(r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}:\d{2}\s*', '', texto).strip()
-                    if status_text:
-                        eventos.append({
-                            'data': data_match.group(1),
-                            'hora': data_match.group(2),
-                            'status': status_text[:200],
-                            'local': ''
-                        })
-        
-        # Atualiza status baseado no último evento
+        # Atualiza status
         if eventos:
             ultimo_status = eventos[-1]['status'].lower()
-            if 'entregue' in ultimo_status or 'entregue' in eventos[-1]['status']:
+            if 'entregue' in ultimo_status or 'entregue' in eventos[-1]['status'].lower():
                 status_atual = "Entregue"
             elif 'coletado' in ultimo_status:
                 status_atual = "Coletado"
-            elif 'transferência' in ultimo_status or 'caminho' in ultimo_status:
-                status_atual = "Em trânsito"
         
         if not eventos:
             return JSONResponse(
                 status_code=404,
-                content={"success": False, "message": f"Nenhum evento encontrado para o código {codigo}. Verifique se o código está correto."}
+                content={"success": False, "message": f"Nenhum evento encontrado para o código {codigo}."}
             )
         
         return {
@@ -302,5 +313,5 @@ async def buscar_rastreio(codigo: str):
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"success": False, "message": f"Erro ao buscar rastreio: {str(e)}" if str(e) else "Erro inesperado ao buscar rastreio. Tente novamente."}
+            content={"success": False, "message": f"Erro ao buscar rastreio: {str(e)}" if str(e) else "Erro inesperado."}
         )
