@@ -121,49 +121,50 @@ async def simulador_page(request: Request):
         <div class="container">&copy; 2026 JADLOG BRÁS</div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        async function calcularFrete() {
+        function calcularFrete() {{
             const cep = document.getElementById('cep').value;
             const peso = document.getElementById('peso').value;
             const valorNf = document.getElementById('valorNf').value;
             const modalidade = document.querySelector('input[name="modalidade"]:checked').value;
             const resultado = document.getElementById('resultado');
             
-            if (!cep || !peso) {
+            if (!cep || !peso) {{
                 resultado.innerHTML = '<div class="alert alert-warning">Preencha CEP e Peso.</div>';
                 return;
-            }
+            }}
             
             resultado.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"></div><p>Calculando...</p></div>';
             
-            try {
-                const response = await fetch(`/api/calcular-frete?cep=${cep}&peso=${peso}&modalidade=${modalidade}&valor_nf=${valorNf || 0}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const d = data.dados;
-                    resultado.innerHTML = `
-                        <div class="result-box">
-                            <div class="cotacao-item"><span>CEP</span><span><strong>${d.cep}</strong></span></div>
-                            <div class="cotacao-item"><span>Destino</span><span><strong>${d.cidade}/${d.uf}</strong></span></div>
-                            <div class="cotacao-item"><span>Tipo</span><span><strong>${d.tipo_tarifa}</strong></span></div>
-                            <div class="cotacao-item"><span>Prazo</span><span><strong>${d.prazo} dias úteis</strong></span></div>
-                            <div class="cotacao-item"><span>Peso</span><span><strong>${d.peso} kg</strong></span></div>
-                            <div class="cotacao-item"><span>Modalidade</span><span><strong>${d.modalidade}</strong></span></div>
-                            <div class="cotacao-item"><span>GLM</span><span><strong>R$ ${d.glm}</strong></span></div>
-                            <div class="cotacao-item"><span>Lucro</span><span><strong>R$ ${d.lucro}</strong></span></div>
-                            <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${d.preco_final}</strong></span></div>
-                            <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${d.ad_valorem}</strong></span></div>
-                            <div class="cotacao-item total"><span>Frete Total</span><span>R$ ${d.total}</span></div>
-                        </div>
-                    `;
-                } else {
-                    resultado.innerHTML = `<div class="alert alert-danger">${data.erro || 'Erro ao calcular frete'}</div>`;
-                }
-            } catch (error) {
-                resultado.innerHTML = '<div class="alert alert-danger">Erro ao conectar com o servidor.</div>';
-            }
-        }
+            fetch(`/api/calcular-frete?cep=${{cep}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNf || 0}}`)
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.success) {{
+                        const d = data.dados;
+                        resultado.innerHTML = `
+                            <div class="result-box">
+                                <div class="cotacao-item"><span>CEP</span><span><strong>${{d.cep}}</strong></span></div>
+                                <div class="cotacao-item"><span>Destino</span><span><strong>${{d.cidade}}/${{d.uf}}</strong></span></div>
+                                <div class="cotacao-item"><span>Tipo</span><span><strong>${{d.tipo_tarifa}}</strong></span></div>
+                                <div class="cotacao-item"><span>Prazo</span><span><strong>${{d.prazo}} dias úteis</strong></span></div>
+                                <div class="cotacao-item"><span>Peso</span><span><strong>${{d.peso}} kg</strong></span></div>
+                                <div class="cotacao-item"><span>Modalidade</span><span><strong>${{d.modalidade}}</strong></span></div>
+                                <div class="cotacao-item"><span>GLM</span><span><strong>R$ ${{d.glm}}</strong></span></div>
+                                <div class="cotacao-item"><span>Lucro</span><span><strong>R$ ${{d.lucro}}</strong></span></div>
+                                <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${{d.preco_final}}</strong></span></div>
+                                <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${{d.ad_valorem}}</strong></span></div>
+                                <div class="cotacao-item total"><span>Frete Total</span><span>R$ ${{d.total}}</span></div>
+                            </div>
+                        `;
+                    }} else {{
+                        resultado.innerHTML = `<div class="alert alert-danger">${{data.erro || 'Erro ao calcular frete'}}</div>`;
+                    }}
+                }})
+                .catch(() => {{
+                    resultado.innerHTML = '<div class="alert alert-danger">Erro ao conectar com o servidor.</div>';
+                }});
+        }}
     </script>
 </body>
 </html>
