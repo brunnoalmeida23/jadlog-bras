@@ -173,13 +173,12 @@ async def rastreio_page(request: Request):
             html += `<hr><div class="timeline">`;
             
             if (data.historico && data.historico.length > 0) {
-                // Remove eventos duplicados baseados na data + status
                 const eventosUnicos = [];
                 const vistos = new Set();
                 
                 data.historico.forEach(evento => {
                     const chave = `${evento.data}_${evento.status.substring(0, 30)}`;
-                    if (!vistos.has(chave)) {
+                    if (!vistos.has(chave) && evento.status && evento.status.length > 5) {
                         vistos.add(chave);
                         eventosUnicos.push(evento);
                     }
@@ -238,8 +237,6 @@ async def buscar_rastreio(codigo: str):
                 content={"success": False, "message": "Erro ao acessar o site da Jadlog"}
             )
         
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
         eventos = []
         status_atual = "Em trânsito"
         remessa = ""
@@ -249,44 +246,52 @@ async def buscar_rastreio(codigo: str):
         if remessa_match:
             remessa = remessa_match.group(1)
         
-        # Buscar eventos com data e hora
-        # Padrão: DD/MM/YYYY - HH:MM seguido de texto
-        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]*)')
+        # CORREÇÃO: Buscar eventos com data, hora e texto
+        # Padrão: DD/MM/YYYY - HH:MM texto do evento
+        padrao_evento = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})\s*([^\n]+)')
         matches = padrao_evento.findall(response.text)
         
         for data, hora, status_text in matches:
-            # Limpa o status_text removendo lixo
             status_text = status_text.strip()
-            if status_text and not status_text.startswith('RASTREAMENTO'):
+            # Filtra textos que não são eventos válidos
+            if status_text and not status_text.startswith('RASTREAMENTO') and not status_text.startswith('Resultados'):
                 eventos.append({
                     'data': data,
                     'hora': hora,
                     'status': status_text[:200],
                 })
         
-        # Se não encontrou com esse padrão, tenta outro
+        # Se não encontrou com esse padrão, tenta o padrão alternativo
         if not eventos:
-            padrao_alternativo = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
-            for match in padrao_alternativo.finditer(response.text):
+            # Busca por data e hora com texto em seguida
+            padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}:\d{2})')
+            for match in padrao_data.finditer(response.text):
                 data = match.group(1)
                 hora = match.group(2)
                 # Pega o texto após a data
                 start = match.end()
-                end = response.text.find('\n', start)
-                if end == -1:
-                    end = start + 100
+                end = min(start + 250, len(response.text))
+                # Tenta cortar na próxima data ou quebra de linha
+                next_date = re.search(r'\d{2}/\d{2}/\d{4}', response.text[start:])
+                if next_date:
+                    end = start + next_date.start()
+                
                 status_text = response.text[start:end].strip()
-                if status_text and 'RASTREAMENTO' not in status_text and len(status_text) > 5:
+                # Limpa o texto
+                status_text = status_text.split('\n')[0].strip()
+                status_text = re.sub(r'\s+', ' ', status_text)
+                
+                if status_text and len(status_text) > 5 and not status_text.startswith('RASTREAMENTO'):
                     eventos.append({
                         'data': data,
                         'hora': hora,
                         'status': status_text[:200],
                     })
         
-        # Atualiza status
+        # Atualiza status baseado no último evento
         if eventos:
             ultimo_status = eventos[-1]['status'].lower()
-            if 'entregue' in ultimo_status or 'entregue' in eventos[-1]['status'].lower():
+            if 'entregue' in ultimo_status:
                 status_atual = "Entregue"
             elif 'coletado' in ultimo_status:
                 status_atual = "Coletado"
