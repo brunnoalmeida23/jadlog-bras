@@ -24,10 +24,10 @@ async def home_page(request: Request):
         .nav-link { color: white !important; }
         .navbar-brand { color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }
         .logo-img { 
-            height: 45px; 
+            height: 55px; 
             background: white; 
             padding: 5px 15px; 
-            border-radius: 6px; 
+            border-radius: 60px; 
         }
         .nav-link.login-btn { 
             background: white; 
@@ -48,8 +48,9 @@ async def home_page(request: Request):
 <body>
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
-            <a class="navbar-brand" href="/">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <a class="navbar-brand" href="/">
                 <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
+                <span class="brand-text">JADLOG BRÁS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
