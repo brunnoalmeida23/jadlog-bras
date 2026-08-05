@@ -49,7 +49,7 @@ async def home_page(request: Request):
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
             <a class="navbar-brand" href="/">
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
