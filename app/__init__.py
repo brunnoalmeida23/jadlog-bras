@@ -1,4 +1,2 @@
-﻿"""
-JADLOG BRÁS - Sistema de Cotação de Frete
-"""
+﻿# app/__init__.py
 __version__ = "1.0.0"

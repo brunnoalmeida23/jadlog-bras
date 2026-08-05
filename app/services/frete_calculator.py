@@ -2,11 +2,11 @@
 """
 CALCULADORA DE FRETE JADLOG BRÁS - VERSÃO COMPLETA
 COM TODAS AS TABELAS: CAPITAL 1,2,3 e INTERIOR 1,2,3
-COM LUCRO DO CLIENTE
+COM LUCRO DO CLIENTE (PREÇO FINAL)
 REGRAS:
-1. GLM = Tabela base (Capital 1,2,3 ou Interior 1,2,3)
-2. LUCRO CLIENTE = Margem do cliente por UF
-3. FINAL = GLM + LUCRO CLIENTE
+1. GLM = Tabela base (Capital 1,2,3 ou Interior 1,2,3) - usado apenas para referência
+2. LUCRO CLIENTE = Preço final por UF (já inclui GLM + margem)
+3. FINAL = LUCRO CLIENTE (valor da planilha)
 4. Ad Valorem = 0,66% do NF (se NF > R$ 100)
 5. TOTAL = FINAL + Ad Valorem
 """
@@ -103,6 +103,7 @@ class FreteCalculator:
         """
         Lucro do cliente por UF e modalidade
         (Extraído da planilha "Preços GLM CLIENTE.xlsx")
+        ESTES VALORES JÁ SÃO O PREÇO FINAL (GLM + MARGEM)
         """
         return {
             # ===== SUDESTE =====
@@ -260,11 +261,10 @@ class FreteCalculator:
                  valor_nf: float = 0.0) -> dict:
         """
         Calcula o frete completo com:
-        - GLM (base) - Capital 1,2,3 ou Interior 1,2,3
-        - LUCRO DO CLIENTE (por UF)
-        - FINAL = GLM + LUCRO
+        - GLM (base) - Capital 1,2,3 ou Interior 1,2,3 - usado apenas para referência
+        - LUCRO CLIENTE = PREÇO FINAL (já inclui GLM + margem)
         - Ad Valorem (seguro)
-        - TOTAL = FINAL + Ad Valorem
+        - TOTAL = PREÇO FINAL + Ad Valorem
 
         Args:
             cep: CEP de destino
@@ -288,37 +288,35 @@ class FreteCalculator:
         # 2. Classificar a região
         regiao = self._classificar_regiao(uf, tipo_tarifa)
 
-        # 3. Calcular GLM (base)
+        # 3. Calcular GLM (base) - apenas para referência
         tabela_glm = self.tabelas[regiao][modalidade]
         glm = self._calcular_valor_tabela(peso, tabela_glm)
 
-        # 4. Calcular LUCRO DO CLIENTE
+        # 4. Obter PREÇO FINAL (lucro do cliente)
+        # Este valor já é o preço final que o cliente pratica (GLM + margem)
         lucro_uf = self.lucro_cliente.get(uf, self.lucro_cliente["SP"])
         tabela_lucro = lucro_uf.get(modalidade, lucro_uf["PACKAGE"])
         
-        # Encontrar a faixa de peso para o lucro
-        pesos_lucro = sorted([p for p in tabela_lucro.keys() if isinstance(p, int)])
-        lucro = None
-        for p in pesos_lucro:
+        # Encontrar a faixa de peso para o preço final
+        pesos_finais = sorted([p for p in tabela_lucro.keys() if isinstance(p, int)])
+        preco_final = None
+        for p in pesos_finais:
             if peso <= p:
-                lucro = tabela_lucro[p]
+                preco_final = tabela_lucro[p]
                 break
         
-        if lucro is None:
+        if preco_final is None:
             # Peso > maior faixa (40kg+)
-            lucro = tabela_lucro[40] * (peso / 40)
+            preco_final = tabela_lucro[40] * (peso / 40)
 
-        # 5. FINAL (GLM + Lucro do cliente)
-        final = glm + lucro
-
-        # 6. Ad Valorem (seguro) - APENAS SE NF > 100
+        # 5. Ad Valorem (seguro) - APENAS SE NF > 100
         if valor_nf > 100:
             ad_valorem = round(valor_nf * 0.0066, 2)
         else:
             ad_valorem = 0.0
 
-        # 7. TOTAL
-        total = round(final + ad_valorem, 2)
+        # 6. TOTAL
+        total = round(preco_final + ad_valorem, 2)
 
         return {
             "success": True,
@@ -332,8 +330,7 @@ class FreteCalculator:
                 "peso": peso,
                 "modalidade": modalidade,
                 "glm": round(glm, 2),
-                "lucro_cliente": round(lucro, 2),
-                "final": round(final, 2),
+                "preco_final": round(preco_final, 2),
                 "ad_valorem": ad_valorem,
                 "total": total,
                 "valor_nf": valor_nf
