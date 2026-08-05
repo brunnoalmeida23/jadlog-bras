@@ -1,12 +1,18 @@
 ﻿# app/routes/home.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
+from app.services.sessao import sessoes
 
 router = APIRouter(prefix="", tags=["Home"])
 
+
 @router.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
-    return """
+    token = request.cookies.get("auth_token")
+    logado = token and token in sessoes
+    botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
+    
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,40 +22,25 @@ async def home_page(request: Request):
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .bg-jadlog { background: #E31E24; }
-        .btn-jadlog { background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }
-        .btn-jadlog:hover { background: #B81217; color: white; }
-        .card-shadow { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }
-        .footer { background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }
-        .nav-link { color: white !important; }
-        .navbar-brand { color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .logo-img { 
-            height: 55px; 
-            background: white; 
-            padding: 5px 15px; 
-            border-radius: 60px; 
-        }
-        .nav-link.login-btn { 
-            background: white; 
-            color: #E31E24 !important; 
-            padding: 5px 20px; 
-            border-radius: 20px; 
-            font-weight: 600;
-        }
-        .nav-link.login-btn:hover { background: #f0f0f0; }
-        .brand-text { 
-            color: white; 
-            font-size: 1.3rem; 
-            font-weight: 700; 
-            margin-left: 5px;
-        }
+        .bg-jadlog {{ background: #E31E24; }}
+        .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog:hover {{ background: #B81217; color: white; }}
+        .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
+        .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
+        .nav-link {{ color: white !important; }}
+        .navbar-brand {{ color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }}
+        .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
+        .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
+        .nav-link.login-btn:hover {{ background: #f0f0f0; }}
+        .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
             <a class="navbar-brand" href="/">
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
+                <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
+                <span class="brand-text">JADLOG BRÁS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
@@ -60,7 +51,9 @@ async def home_page(request: Request):
                     <li class="nav-item"><a class="nav-link" href="/simulador">Simulador</a></li>
                     <li class="nav-item"><a class="nav-link" href="/consulta">Consulta</a></li>
                     <li class="nav-item"><a class="nav-link" href="/rastreio">Rastreio</a></li>
-                    <li class="nav-item"><a class="nav-link login-btn" href="/login">Login</a></li>
+                    <li class="nav-item">
+                        {botao_menu}
+                    </li>
                 </ul>
             </div>
         </div>
@@ -124,6 +117,7 @@ async def home_page(request: Request):
 </body>
 </html>
     """
+
 
 @router.get("/home", response_class=HTMLResponse)
 async def home_redirect():

@@ -1,18 +1,15 @@
 # app/routes/simulador.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from app.routes.auth import sessoes  # Importa o dicionário de sessões
+from app.services.sessao import sessoes
 
 router = APIRouter(prefix="/simulador", tags=["Simulador"])
 
 
 @router.get("/", response_class=HTMLResponse)
 async def simulador_page(request: Request):
-    # Verifica se o usuário está logado pelo cookie
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
-    
-    # Menu (mostra Login ou Sair)
     botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
     
     return f"""
