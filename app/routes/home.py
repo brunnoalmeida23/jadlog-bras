@@ -39,7 +39,6 @@ async def home_page(request: Request):
         <div class="container">
             <a class="navbar-brand" href="/">
                 <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
-                JADLOG BRÁS
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
