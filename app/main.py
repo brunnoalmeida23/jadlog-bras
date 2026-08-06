@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-from app.routes import home, simulador, consulta, api, rastreio
+from app.routes import home, simulador, api, rastreio
 from app.routes.auth import router as auth_router
 
 app = FastAPI(
@@ -16,7 +16,6 @@ app = FastAPI(
 # Rotas
 app.include_router(home.router)
 app.include_router(simulador.router)
-app.include_router(consulta.router)
 app.include_router(api.router)
 app.include_router(rastreio.router)
 app.include_router(auth_router)
