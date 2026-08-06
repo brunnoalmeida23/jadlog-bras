@@ -167,19 +167,19 @@ async def simulador_page(request: Request):
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">CEP de Destino</label>
                                 <input type="text" class="form-control form-control-lg" 
-                                       placeholder="Ex: 01000-000" id="cepDestino" value="07071060" required>
+                                       placeholder="Ex: 01000-000" id="cepDestino" required>
                                 <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Peso (kg)</label>
                                 <input type="number" class="form-control form-control-lg" 
-                                       placeholder="Ex: 2.350" id="peso" value="10" step="0.001" required>
+                                       placeholder="Ex: 2.350" id="peso" step="0.001" required>
                                 <small class="text-muted">Ex: 2.350</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Valor da NF (R$)</label>
                                 <input type="number" class="form-control form-control-lg" 
-                                       placeholder="Ex: 5000.00" id="valorNF" value="100" step="0.01" required>
+                                       placeholder="Ex: 5000.00" id="valorNF" step="0.01" required>
                                 <small class="text-muted">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
                             </div>
                             <div class="col-md-6">
