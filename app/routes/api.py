@@ -27,3 +27,20 @@ async def calcular_frete(
             status_code=500,
             content={"success": False, "erro": str(e)}
         )
+
+
+# ============================================================
+# ROTA ADICIONAL PARA COMPATIBILIDADE COM O FRONTEND
+# ============================================================
+@router.get("/simular")
+async def simular_frete(
+    cep: str,
+    peso: float,
+    modalidade: str = "PACKAGE",
+    valor_nf: float = 0.0
+):
+    """
+    Rota alternativa que chama a função calcular_frete.
+    Mantida para compatibilidade com o frontend.
+    """
+    return await calcular_frete(cep, peso, modalidade, valor_nf)
