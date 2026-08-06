@@ -177,7 +177,7 @@ async def rastreio_page(request: Request):
         // ============================================================
         // CONFIGURAÇÃO DA URL DA API
         // ============================================================
-        const API_URL = 'http://localhost:8001';  // API de rastreio na porta 8001
+        const API_URL = 'https://jadlog-api.onrender.com';  // API de rastreio na porta 8001
         
         function buscarRastreio() {{
             const codigo = document.getElementById('codigoRastreio').value.trim();
