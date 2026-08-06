@@ -11,7 +11,6 @@ async def simulador_page(request: Request):
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
     
-    # Gerar número da cotação
     now = datetime.datetime.now()
     num_cotacao = f"COT-{now.year}-{str(now.month).zfill(2)}{str(now.day).zfill(2)}-{str(now.hour).zfill(2)}{str(now.minute).zfill(2)}"
     
@@ -227,7 +226,7 @@ async def simulador_page(request: Request):
                     </div>
                     <h2>SIMULAR FRETE</h2>
                     
-                    <form id="formSimulador" onsubmit="return false;">
+                    <form id="formSimulador" onsubmit="event.preventDefault(); calcularFrete();">
                         <!-- Dados do Cliente -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Dados do Cliente</label>
@@ -313,7 +312,7 @@ async def simulador_page(request: Request):
                         </div>
                         
                         <div class="mt-4">
-                            <button type="button" class="btn btn-jadlog btn-lg w-100" onclick="calcularFrete()">
+                            <button type="submit" class="btn btn-jadlog btn-lg w-100">
                                 <i class="bi bi-calculator"></i> Calcular Frete
                             </button>
                         </div>
@@ -333,7 +332,7 @@ async def simulador_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const USUARIO_LOGADO = {{ 'true' if logado else 'false' }};
+        const USUARIO_LOGADO = {'logado': 'true' if logado else 'false'};
         let dadosCotacao = null;
         const NUMERO_COTACAO = '{{num_cotacao}}';
         
@@ -352,9 +351,9 @@ async def simulador_page(request: Request):
                 return;
             }}
             
-            // Simulação de busca - substituir por chamada à API
-            // Exemplo: cliente encontrado
-            const clienteEncontrado = true; // Mudar para false para testar cliente não encontrado
+            // SIMULAÇÃO - CLIENTE ENCONTRADO
+            // Troque para false para testar cliente não encontrado
+            const clienteEncontrado = true;
             
             if (clienteEncontrado) {{
                 infoDiv.style.display = 'block';
@@ -363,8 +362,8 @@ async def simulador_page(request: Request):
                         <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
                     </div>
                     <div class="info-cliente">
-                        <div><strong id="nomeClienteInfo">Bruno Henrique Fagundes de Almeida</strong></div>
-                        <div id="enderecoClienteInfo" class="text-muted">Guarulhos/SP • 11987437462</div>
+                        <div><strong>Bruno Henrique Fagundes de Almeida</strong></div>
+                        <div class="text-muted">Guarulhos/SP • 11987437462</div>
                     </div>
                 `;
                 cadastroDiv.style.display = 'none';
@@ -382,15 +381,12 @@ async def simulador_page(request: Request):
         function salvarCliente() {{
             const nome = document.getElementById('nomeCliente').value.trim();
             const telefone = document.getElementById('telefoneCliente').value.trim();
-            const email = document.getElementById('emailCliente').value.trim();
-            const endereco = document.getElementById('enderecoCliente').value.trim();
             
             if (!nome || !telefone) {{
                 alert('Preencha pelo menos o Nome e Telefone.');
                 return;
             }}
             
-            // Simulação de salvamento - substituir por chamada à API
             alert('Cliente cadastrado com sucesso!');
             document.getElementById('cadastroCliente').style.display = 'none';
             document.getElementById('infoCliente').innerHTML = `
@@ -399,7 +395,7 @@ async def simulador_page(request: Request):
                 </div>
                 <div class="info-cliente">
                     <div><strong>${{nome}}</strong></div>
-                    <div class="text-muted">${{endereco || 'Endereço não informado'}} • ${{telefone}}</div>
+                    <div class="text-muted">Telefone: ${{telefone}}</div>
                 </div>
             `;
         }}
@@ -411,7 +407,7 @@ async def simulador_page(request: Request):
         }}
         
         // ============================================================
-        // FUNÇÕES DE CÁLCULO
+        // FUNÇÃO PRINCIPAL - CALCULAR FRETE
         // ============================================================
         
         function calcularFrete() {{
@@ -543,7 +539,7 @@ async def simulador_page(request: Request):
         // ============================================================
         
         function gerarBotoes() {{
-            const logado = USUARIO_LOGADO;
+            const logado = USUARIO_LOGADO.logado === 'true';
             
             let botoes = `
                 <div class="botoes-acao">
