@@ -27,14 +27,14 @@ async def simulador_page(request: Request):
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .bg-jadlog {{ background: #E31E24; }}
-        .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 20px; border-radius: 8px; }}
         .btn-jadlog:hover {{ background: #B81217; color: white; }}
-        .btn-jadlog-outline {{ background: transparent; color: #E31E24; border: 2px solid #E31E24; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog-outline {{ background: transparent; color: #E31E24; border: 2px solid #E31E24; padding: 10px 20px; border-radius: 8px; }}
         .btn-jadlog-outline:hover {{ background: #E31E24; color: white; }}
-        .btn-nova-cotacao {{ background: #6c757d; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-nova-cotacao {{ background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 8px; }}
         .btn-nova-cotacao:hover {{ background: #5a6268; color: white; }}
+        .btn-sm-custom {{ padding: 8px 16px; font-size: 0.9rem; }}
         
-        .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
         .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
         .nav-link {{ color: white !important; }}
         .navbar-brand {{ color: white !important; font-weight: 700; display: flex; align-items: center; gap: 10px; text-decoration: none; }}
@@ -43,104 +43,147 @@ async def simulador_page(request: Request):
         .nav-link.login-btn:hover {{ background: #f0f0f0; }}
         .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
         
-        .search-box {{ 
-            background: white; 
-            border-radius: 12px; 
-            padding: 30px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08); 
-            max-width: 700px; 
+        .main-container {{
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
         }}
         
-        .search-box h2 {{ color: #E31E24; margin-bottom: 20px; text-align: center; font-size: 1.3rem; font-weight: 700; }}
-        
-        .info-item {{
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }}
-        .info-item .label {{ font-weight: 600; color: #495057; }}
-        .info-item .valor {{ font-weight: 500; color: #212529; }}
-        
-        .resultado-item {{
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }}
-        .resultado-item .label {{ font-weight: 600; color: #6c757d; font-size: 0.85rem; }}
-        .resultado-item .valor {{ font-size: 1rem; font-weight: 500; color: #212529; }}
-        
-        .valor-frete {{ font-size: 1.2rem; font-weight: 700; color: #E31E24; }}
-        .valor-total {{ font-size: 1.4rem; font-weight: 700; color: #28a745; }}
-        
-        .loading {{ text-align: center; padding: 30px; }}
-        .loading .spinner {{ animation: spin 1s linear infinite; font-size: 2rem; }}
-        @keyframes spin {{ 100% {{ transform: rotate(360deg); }} }}
-        
-        .search-icon {{ font-size: 2.5rem; color: #E31E24; margin-bottom: 15px; text-align: center; }}
-        
-        .botoes-acao {{ display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }}
-        .botoes-acao .btn {{ min-width: 140px; }}
-        
-        .form-control:focus {{ border-color: #E31E24; box-shadow: 0 0 0 0.2rem rgba(227, 30, 36, 0.25); }}
-        
-        .cotacao-numero {{ font-size: 1rem; font-weight: 600; color: #E31E24; margin-bottom: 15px; }}
-        
-        .observacao {{ 
-            font-size: 0.8rem; 
-            color: #6c757d; 
-            text-align: center; 
-            margin-top: 15px; 
-            padding: 10px; 
-            background: #fff3cd; 
-            border-radius: 8px; 
-            border: 1px solid #ffeeba; 
+        .left-column {{
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }}
         
-        .cliente-encontrado {{ 
-            background: #d4edda; 
-            color: #155724; 
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            margin: 8px 0; 
-            border: 1px solid #c3e6cb; 
-            font-size: 0.9rem;
+        .right-column {{
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }}
         
-        .info-cliente {{ 
-            background: #f8f9fa; 
-            border-radius: 6px; 
-            padding: 10px 15px; 
-            margin: 8px 0; 
-            border: 1px solid #dee2e6;
-        }}
-        
-        .info-cliente .nome {{ font-weight: 600; font-size: 1rem; }}
-        .info-cliente .detalhes {{ color: #6c757d; font-size: 0.85rem; }}
-        
-        .campo-origem {{ background: #e9ecef; cursor: not-allowed; }}
-        
-        .dados-cliente {{
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
+        .right-column .titulo-recibo {{
+            color: #E31E24;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-align: center;
             margin-bottom: 15px;
         }}
         
-        .dados-cliente .cpf {{
-            font-size: 0.9rem;
+        .right-column .cotacao-numero {{
+            text-align: center;
+            font-weight: 600;
+            color: #E31E24;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }}
+        
+        .linha-recibo {{
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }}
+        
+        .linha-recibo .label {{
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.85rem;
+        }}
+        
+        .linha-recibo .valor {{
+            font-weight: 500;
+            color: #212529;
+            font-size: 0.85rem;
+        }}
+        
+        .linha-recibo .valor-frete {{
+            font-weight: 700;
+            color: #E31E24;
+            font-size: 1rem;
+        }}
+        
+        .linha-recibo .valor-total {{
+            font-weight: 700;
+            color: #28a745;
+            font-size: 1.2rem;
+        }}
+        
+        .recibo-observacao {{
+            font-size: 0.75rem;
             color: #6c757d;
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
         }}
         
-        .resultado-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .recibo-observacao strong {{
+            color: #856404;
+        }}
+        
+        .botoes-recibo {{
+            display: flex;
+            justify-content: center;
             gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
         }}
         
-        @media (max-width: 600px) {{
-            .resultado-grid {{
-                grid-template-columns: 1fr;
+        .botoes-recibo .btn {{
+            min-width: 130px;
+        }}
+        
+        .form-label {{
+            font-weight: 600;
+            font-size: 0.9rem;
+        }}
+        
+        .form-control:focus {{
+            border-color: #E31E24;
+            box-shadow: 0 0 0 0.2rem rgba(227, 30, 36, 0.25);
+        }}
+        
+        .cliente-encontrado {{
+            background: #d4edda;
+            color: #155724;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+            border: 1px solid #c3e6cb;
+            font-size: 0.85rem;
+        }}
+        
+        .info-cliente {{
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border: 1px solid #dee2e6;
+        }}
+        
+        .info-cliente .nome {{ font-weight: 600; font-size: 0.95rem; }}
+        .info-cliente .detalhes {{ color: #6c757d; font-size: 0.8rem; }}
+        
+        .campo-origem {{ background: #e9ecef; cursor: not-allowed; }}
+        
+        .recibo-vazio {{
+            text-align: center;
+            color: #999;
+            padding: 40px 0;
+        }}
+        
+        .recibo-vazio i {{
+            font-size: 3rem;
+            color: #ddd;
+        }}
+        
+        @media (max-width: 768px) {{
+            .left-column, .right-column {{
+                margin-bottom: 20px;
             }}
         }}
     </style>
@@ -167,110 +210,123 @@ async def simulador_page(request: Request):
         </div>
     </nav>
 
-    <main class="container py-4">
-        <div class="search-box">
-            <div class="search-icon"><i class="bi bi-calculator"></i></div>
-            <h2>SIMULAR FRETE</h2>
-            
-            <form id="formSimulador">
-                <!-- Dados do Cliente -->
-                <div class="dados-cliente">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">Dados do Cliente</span>
-                        <span class="cpf">405.890.958-70</span>
-                    </div>
-                    <div id="infoCliente">
-                        <div class="cliente-encontrado">
-                            <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
-                        </div>
-                        <div class="info-cliente">
-                            <div class="nome">Bruno Henrique Fagundes de Almeida</div>
-                            <div class="detalhes">Guarulhos/SP • 11987437462</div>
-                        </div>
-                    </div>
-                    <div id="cadastroCliente" style="display: none;"></div>
-                </div>
-                
-                <!-- Origem -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Origem</label>
-                    <input type="text" class="form-control campo-origem" value="Bras - SP (03000-000)" readonly disabled>
-                </div>
-                
-                <!-- CEP Destino -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">CEP de Destino</label>
-                    <input type="text" class="form-control" placeholder="Ex: 01000-000" id="cepDestino" value="07071060">
-                    <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
-                </div>
-                
-                <!-- Peso e Valor NF -->
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Peso (kg)</label>
-                        <input type="number" class="form-control" placeholder="Ex: 2.350" id="peso" value="10" step="0.001">
-                        <small class="text-muted">Ex: 2.350</small>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Valor da NF (R$)</label>
-                        <input type="number" class="form-control" placeholder="Ex: 5000.00" id="valorNF" value="100" step="0.01">
-                        <small class="text-muted">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
-                    </div>
-                </div>
-                
-                <!-- Modalidade -->
-                <div class="mt-3">
-                    <label class="form-label fw-bold">Modalidade</label>
-                    <select class="form-control" id="modalidade">
-                        <option value="PACKAGE">PACKAGE</option>
-                        <option value=".COM">.COM</option>
-                    </select>
-                    <small class="text-muted">Selecione a modalidade desejada</small>
-                </div>
-                
-                <div class="mt-4">
-                    <button type="button" class="btn btn-jadlog w-100" onclick="calcularFrete()" style="padding: 12px; font-size: 1.1rem;">
-                        <i class="bi bi-calculator"></i> Calcular Frete
-                    </button>
-                </div>
-            </form>
-            
-            <!-- Resultado -->
-            <div id="resultado" class="mt-4">
-                <div class="card card-shadow">
-                    <div class="cotacao-numero"><i class="bi bi-file-text"></i> COT-2026-0806-1109</div>
+    <main class="container-fluid main-container">
+        <div class="row g-4">
+            <!-- COLUNA ESQUERDA - FORMULÁRIO -->
+            <div class="col-lg-5">
+                <div class="left-column">
+                    <h5 style="color: #E31E24; font-weight: 700; margin-bottom: 20px;">
+                        <i class="bi bi-calculator"></i> SIMULAR FRETE
+                    </h5>
                     
-                    <div class="resultado-grid">
-                        <div>
-                            <div class="resultado-item"><div class="label">Origem</div><div class="valor">Bras - SP</div></div>
-                            <div class="resultado-item"><div class="label">Destino</div><div class="valor">FRANCO DA ROCHA/SP</div></div>
-                            <div class="resultado-item"><div class="label">Prazo</div><div class="valor">4 dias</div></div>
-                            <div class="resultado-item"><div class="label">Modalidade</div><div class="valor">PACKAGE</div></div>
+                    <form id="formSimulador">
+                        <!-- Cliente -->
+                        <div class="mb-3">
+                            <label class="form-label">Dados do Cliente</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" placeholder="CPF/CNPJ" id="cpfCliente" value="405.890.958-70">
+                                <button class="btn btn-jadlog btn-sm" type="button" onclick="buscarCliente()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div id="infoCliente" class="mt-2">
+                                <div class="cliente-encontrado">
+                                    <i class="bi bi-check-circle"></i> Cliente encontrado!
+                                </div>
+                                <div class="info-cliente">
+                                    <div class="nome">Bruno Henrique Fagundes de Almeida</div>
+                                    <div class="detalhes">Guarulhos/SP • 11987437462</div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="resultado-item"><div class="label">Tipo</div><div class="valor">Capital</div></div>
-                            <div class="resultado-item"><div class="label">Peso</div><div class="valor">10 kg</div></div>
-                            <div class="resultado-item"><div class="label">Valor do Frete</div><div class="valor valor-frete">R$ 123.99</div></div>
-                            <div class="resultado-item"><div class="label">Seguro</div><div class="valor">R$ 0.00</div></div>
+                        
+                        <!-- Origem -->
+                        <div class="mb-3">
+                            <label class="form-label">Origem</label>
+                            <input type="text" class="form-control form-control-sm campo-origem" value="Bras - SP (03000-000)" readonly disabled>
                         </div>
-                    </div>
-                    
-                    <div class="text-center mt-3" style="border-top: 2px solid #E31E24; padding-top: 15px;">
-                        <span style="font-size: 1.4rem; font-weight: 700; color: #28a745;">Frete Total: R$ 123.99</span>
-                    </div>
-                    
-                    <div class="observacao">
-                        <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
-                        <strong>Validos até Dezembro de 2026</strong>
-                    </div>
+                        
+                        <!-- CEP -->
+                        <div class="mb-3">
+                            <label class="form-label">CEP de Destino</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Ex: 01000-000" id="cepDestino" value="07071060">
+                            <small class="text-muted" style="font-size: 0.7rem;">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
+                        </div>
+                        
+                        <!-- Peso e Valor NF -->
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Peso (kg)</label>
+                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 2.350" id="peso" value="10" step="0.001">
+                                <small class="text-muted" style="font-size: 0.7rem;">Ex: 2.350</small>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Valor NF (R$)</label>
+                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 5000.00" id="valorNF" value="100" step="0.01">
+                                <small class="text-muted" style="font-size: 0.7rem;">Seguro: 0,66% se NF > R$ 100</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Modalidade -->
+                        <div class="mt-3">
+                            <label class="form-label">Modalidade</label>
+                            <select class="form-control form-control-sm" id="modalidade">
+                                <option value="PACKAGE">PACKAGE</option>
+                                <option value=".COM">.COM</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 0.7rem;">Selecione a modalidade desejada</small>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-jadlog w-100 btn-sm-custom" onclick="calcularFrete()">
+                                <i class="bi bi-calculator"></i> Calcular Frete
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             
-            <div id="areaBotoes" class="mt-3">
-                <div class="botoes-acao">
-                    <button class="btn btn-jadlog" onclick="imprimirCotacao()"><i class="bi bi-printer"></i> Imprimir Recibo</button>
-                    <button class="btn btn-jadlog-outline" onclick="baixarCotacao()"><i class="bi bi-download"></i> Baixar Cotação</button>
-                    <button class="btn btn-nova-cotacao" onclick="novaCotacao()"><i class="bi bi-plus-circle"></i> Nova Cotação</button>
+            <!-- COLUNA DIREITA - RECIBO -->
+            <div class="col-lg-7">
+                <div class="right-column" id="reciboContainer">
+                    <div class="titulo-recibo">
+                        <i class="bi bi-file-text"></i> RECIBO DE COTAÇÃO
+                    </div>
+                    
+                    <div id="reciboConteudo">
+                        <!-- Recibo vazio (será preenchido pelo JavaScript) -->
+                        <div class="recibo-vazio" id="reciboVazio">
+                            <i class="bi bi-receipt"></i>
+                            <p class="mt-2">Preencha os dados e clique em<br><strong>"Calcular Frete"</strong></p>
+                        </div>
+                        
+                        <!-- Recibo com dados (oculto inicialmente) -->
+                        <div id="reciboPreenchido" style="display: none;">
+                            <div class="cotacao-numero" id="reciboNumero">COT-2026-0806-1109</div>
+                            
+                            <div id="reciboLinhas">
+                                <!-- Preenchido pelo JavaScript -->
+                            </div>
+                            
+                            <div class="recibo-observacao">
+                                <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
+                                <strong>Válidos até Dezembro de 2026</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões do recibo -->
+                    <div class="botoes-recibo" id="botoesRecibo" style="display: none;">
+                        <button class="btn btn-jadlog btn-sm" onclick="imprimirCotacao()">
+                            <i class="bi bi-printer"></i> Imprimir
+                        </button>
+                        <button class="btn btn-jadlog-outline btn-sm" onclick="baixarCotacao()">
+                            <i class="bi bi-download"></i> Baixar
+                        </button>
+                        <button class="btn btn-nova-cotacao btn-sm" onclick="novaCotacao()">
+                            <i class="bi bi-plus-circle"></i> Nova
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -286,19 +342,24 @@ async def simulador_page(request: Request):
         const USUARIO_LOGADO = {'true' if logado else 'false'};
         let dadosCotacao = null;
         
+        function buscarCliente() {{
+            // Função já integrada ao formulário
+        }}
+        
         function calcularFrete() {{
             const cep = document.getElementById('cepDestino').value.trim();
             const peso = parseFloat(document.getElementById('peso').value);
             const valorNF = parseFloat(document.getElementById('valorNF').value);
             const modalidade = document.getElementById('modalidade').value;
-            const resultado = document.getElementById('resultado');
             
             if (!cep || !peso || !valorNF) {{
-                resultado.innerHTML = '<div class="alert alert-warning mt-3">Preencha todos os campos.</div>';
+                alert('Preencha todos os campos.');
                 return;
             }}
             
-            resultado.innerHTML = `<div class="loading mt-3"><div class="spinner">⏳</div><p class="mt-2">Simulando frete...</p></div>`;
+            document.getElementById('reciboVazio').style.display = 'none';
+            document.getElementById('reciboPreenchido').style.display = 'block';
+            document.getElementById('reciboPreenchido').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-danger" role="status"></div><p class="mt-2">Calculando...</p></div>';
             
             fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNF}}`)
                 .then(response => response.json())
@@ -306,17 +367,18 @@ async def simulador_page(request: Request):
                     if (data.success) {{
                         const dados = data.dados || data;
                         dadosCotacao = dados;
-                        exibirResultado(dados);
+                        exibirRecibo(dados);
+                        document.getElementById('botoesRecibo').style.display = 'flex';
                     }} else {{
-                        resultado.innerHTML = `<div class="alert alert-danger mt-3">${{data.erro || 'Erro ao simular frete'}}</div>`;
+                        alert(data.erro || 'Erro ao calcular frete');
                     }}
                 }})
                 .catch(() => {{
-                    resultado.innerHTML = '<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle"></i> Erro ao simular frete. Tente novamente.</div>';
+                    alert('Erro ao calcular frete. Tente novamente.');
                 }});
         }}
         
-        function exibirResultado(data) {{
+        function exibirRecibo(data) {{
             const seguro = data.seguro || 0;
             const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
@@ -326,33 +388,42 @@ async def simulador_page(request: Request):
             const uf = data.uf || 'SP';
             const modalidade = data.modalidade || 'PACKAGE';
             
-            document.getElementById('resultado').innerHTML = `
-                <div class="card card-shadow mt-3">
-                    <div class="cotacao-numero"><i class="bi bi-file-text"></i> ${{NUMERO_COTACAO}}</div>
-                    
-                    <div class="resultado-grid">
-                        <div>
-                            <div class="resultado-item"><div class="label">Origem</div><div class="valor">Bras - SP</div></div>
-                            <div class="resultado-item"><div class="label">Destino</div><div class="valor">${{cidade}}/${{uf}}</div></div>
-                            <div class="resultado-item"><div class="label">Prazo</div><div class="valor">${{prazo}} dias</div></div>
-                            <div class="resultado-item"><div class="label">Modalidade</div><div class="valor">${{modalidade}}</div></div>
-                        </div>
-                        <div>
-                            <div class="resultado-item"><div class="label">Tipo</div><div class="valor">${{tipoTarifa}}</div></div>
-                            <div class="resultado-item"><div class="label">Peso</div><div class="valor">${{data.peso || 10}} kg</div></div>
-                            <div class="resultado-item"><div class="label">Valor do Frete</div><div class="valor valor-frete">R$ ${{valorFrete.toFixed(2)}}</div></div>
-                            <div class="resultado-item"><div class="label">Seguro</div><div class="valor">R$ ${{seguro.toFixed(2)}}</div></div>
-                        </div>
+            let linhas = '';
+            const itens = [
+                ['Origem', 'Bras - SP'],
+                ['Destino', cidade + '/' + uf],
+                ['Prazo', prazo + ' dias'],
+                ['Modalidade', modalidade],
+                ['Tipo', tipoTarifa],
+                ['Peso', (data.peso || 10) + ' kg'],
+                ['Valor do Frete', 'R$ ' + valorFrete.toFixed(2)],
+                ['Seguro', 'R$ ' + seguro.toFixed(2)]
+            ];
+            
+            itens.forEach(item => {{
+                const classe = item[0] === 'Valor do Frete' ? 'valor-frete' : 
+                              item[0] === 'Seguro' ? '' : '';
+                linhas += `
+                    <div class="linha-recibo">
+                        <span class="label">${{item[0]}}</span>
+                        <span class="valor ${{classe}}">${{item[1]}}</span>
                     </div>
-                    
-                    <div class="text-center mt-3" style="border-top: 2px solid #E31E24; padding-top: 15px;">
-                        <span style="font-size: 1.4rem; font-weight: 700; color: #28a745;">Frete Total: R$ ${{freteTotal.toFixed(2)}}</span>
-                    </div>
-                    
-                    <div class="observacao">
-                        <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
-                        <strong>Validos até Dezembro de 2026</strong>
-                    </div>
+                `;
+            }});
+            
+            linhas += `
+                <div class="linha-recibo" style="border-bottom: 2px solid #E31E24; padding-top: 10px; margin-top: 5px;">
+                    <span class="label" style="font-size: 1rem;">Frete Total</span>
+                    <span class="valor valor-total">R$ ${{freteTotal.toFixed(2)}}</span>
+                </div>
+            `;
+            
+            document.getElementById('reciboPreenchido').innerHTML = `
+                <div class="cotacao-numero">${{NUMERO_COTACAO}}</div>
+                ${{linhas}}
+                <div class="recibo-observacao">
+                    <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
+                    <strong>Válidos até Dezembro de 2026</strong>
                 </div>
             `;
         }}
@@ -361,14 +432,17 @@ async def simulador_page(request: Request):
             document.getElementById('cepDestino').value = '';
             document.getElementById('peso').value = '';
             document.getElementById('valorNF').value = '';
-            document.getElementById('resultado').innerHTML = '';
+            document.getElementById('reciboPreenchido').style.display = 'none';
+            document.getElementById('reciboVazio').style.display = 'block';
+            document.getElementById('botoesRecibo').style.display = 'none';
+            dadosCotacao = null;
             document.getElementById('cepDestino').focus();
         }}
         
         function imprimirCotacao() {{
-            if (!dadosCotacao) {{ alert('Nenhuma cotação encontrada.'); return; }}
+            if (!dadosCotacao) {{ alert('Nenhuma cotação para imprimir.'); return; }}
             const janela = window.open('', '_blank', 'width=800,height=600');
-            janela.document.write(gerarHTML(dadosCotacao));
+            janela.document.write(gerarHTMLRecibo(dadosCotacao));
             janela.document.close();
             janela.focus();
             janela.print();
@@ -376,8 +450,8 @@ async def simulador_page(request: Request):
         }}
         
         function baixarCotacao() {{
-            if (!dadosCotacao) {{ alert('Nenhuma cotação encontrada.'); return; }}
-            const blob = new Blob([gerarHTML(dadosCotacao)], {{ type: 'text/html' }});
+            if (!dadosCotacao) {{ alert('Nenhuma cotação para baixar.'); return; }}
+            const blob = new Blob([gerarHTMLRecibo(dadosCotacao)], {{ type: 'text/html' }});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -388,7 +462,7 @@ async def simulador_page(request: Request):
             URL.revokeObjectURL(url);
         }}
         
-        function gerarHTML(data) {{
+        function gerarHTMLRecibo(data) {{
             const seguro = data.seguro || 0;
             const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
@@ -398,41 +472,40 @@ async def simulador_page(request: Request):
             const uf = data.uf || 'SP';
             const modalidade = data.modalidade || 'PACKAGE';
             
-            return `<!DOCTYPE html><html><head><title>Cotação de Frete - JADLOG BRÁS</title><meta charset="UTF-8"><style>
-                body{{font-family:Arial;padding:20px;max-width:700px;margin:0 auto}}
+            return `<!DOCTYPE html>
+            <html>
+            <head><title>Cotação - JADLOG BRÁS</title>
+            <meta charset="UTF-8">
+            <style>
+                body{{font-family:Arial;padding:30px;max-width:600px;margin:0 auto}}
                 .header{{text-align:center;border-bottom:2px solid #E31E24;padding-bottom:10px}}
-                .header h1{{color:#E31E24;margin:0}}
-                .cotacao-numero{{text-align:center;font-weight:bold;color:#E31E24;margin:15px 0}}
-                .info{{background:#f5f5f5;padding:15px;border-radius:5px;margin-bottom:15px}}
-                .info-item{{margin:5px 0}}
-                .info-item .label{{font-weight:bold}}
-                .grid{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}}
-                .item{{padding:8px;border-left:3px solid #E31E24}}
-                .total{{font-size:1.6rem;font-weight:bold;color:#28a745;text-align:center;padding:15px;background:#f0f8f0;border-radius:8px;margin:15px 0}}
-                .obs{{text-align:center;padding:10px;background:#fff3cd;border-radius:8px;border:1px solid #ffeeba;font-size:0.9rem;margin:15px 0}}
-                .footer{{text-align:center;margin-top:30px;font-size:12px;color:#999}}
-            </style></head><body>
+                .header h1{{color:#E31E24;margin:0;font-size:1.5rem}}
+                .header h2{{font-size:1.1rem;color:#555;margin:5px 0}}
+                .numero{{text-align:center;font-weight:bold;color:#E31E24;margin:15px 0;font-size:1rem}}
+                .linha{{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}}
+                .label{{font-weight:bold;color:#555}}
+                .valor{{font-weight:500}}
+                .total{{font-size:1.3rem;font-weight:bold;color:#28a745;text-align:center;padding:15px;background:#f0f8f0;border-radius:8px;margin:15px 0}}
+                .obs{{text-align:center;padding:10px;background:#fff3cd;border-radius:8px;border:1px solid #ffeeba;font-size:0.8rem;margin:15px 0}}
+                .footer{{text-align:center;margin-top:30px;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}}
+            </style>
+            </head>
+            <body>
                 <div class="header"><h1>JADLOG BRÁS</h1><h2>Cotação de Frete</h2></div>
-                <div class="cotacao-numero">${{NUMERO_COTACAO}}</div>
-                <div class="info">
-                    <div class="info-item"><span class="label">Data:</span> ${{new Date().toLocaleString('pt-BR')}}</div>
-                    <div class="info-item"><span class="label">CEP:</span> ${{data.cep || 'N/A'}}</div>
-                    <div class="info-item"><span class="label">Peso:</span> ${{data.peso || 'N/A'}} kg</div>
-                </div>
-                <div class="grid">
-                    <div class="item"><strong>Origem</strong><br>Bras - SP</div>
-                    <div class="item"><strong>Destino</strong><br>${{cidade}}/${{uf}}</div>
-                    <div class="item"><strong>Tipo</strong><br>${{tipoTarifa}}</div>
-                    <div class="item"><strong>Prazo</strong><br>${{prazo}} dias</div>
-                    <div class="item"><strong>Modalidade</strong><br>${{modalidade}}</div>
-                    <div class="item"><strong>Peso</strong><br>${{data.peso || 10}} kg</div>
-                    <div class="item"><strong>Valor Frete</strong><br>R$ ${{valorFrete.toFixed(2)}}</div>
-                    <div class="item"><strong>Seguro</strong><br>R$ ${{seguro.toFixed(2)}}</div>
-                </div>
+                <div class="numero">${{NUMERO_COTACAO}}</div>
+                <div class="linha"><span class="label">Origem</span><span class="valor">Bras - SP</span></div>
+                <div class="linha"><span class="label">Destino</span><span class="valor">${{cidade}}/${{uf}}</span></div>
+                <div class="linha"><span class="label">Prazo</span><span class="valor">${{prazo}} dias</span></div>
+                <div class="linha"><span class="label">Modalidade</span><span class="valor">${{modalidade}}</span></div>
+                <div class="linha"><span class="label">Tipo</span><span class="valor">${{tipoTarifa}}</span></div>
+                <div class="linha"><span class="label">Peso</span><span class="valor">${{data.peso || 10}} kg</span></div>
+                <div class="linha"><span class="label">Valor do Frete</span><span class="valor">R$ ${{valorFrete.toFixed(2)}}</span></div>
+                <div class="linha"><span class="label">Seguro</span><span class="valor">R$ ${{seguro.toFixed(2)}}</span></div>
                 <div class="total">Frete Total: R$ ${{freteTotal.toFixed(2)}}</div>
                 <div class="obs">VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br><strong>Válidos até Dezembro de 2026</strong></div>
                 <div class="footer"><p>JADLOG BRÁS - Sistema de Cotação de Frete</p></div>
-            </body></html>`;
+            </body>
+            </html>`;
         }}
     </script>
 </body>
