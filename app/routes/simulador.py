@@ -1,8 +1,7 @@
 # app/routes/simulador.py
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from app.services.sessao import sessoes
-from app.services.calculo_frete import calcular_frete
 
 router = APIRouter(prefix="/simulador", tags=["Simulador"])
 
@@ -202,10 +201,7 @@ async def simulador_page(request: Request):
                     
                     <div id="resultado" class="mt-4"></div>
                     
-                    <!-- Área onde os botões serão exibidos -->
-                    <div id="areaBotoes" style="display: none;">
-                        <!-- Os botões são inseridos via JavaScript -->
-                    </div>
+                    <div id="areaBotoes" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -217,12 +213,8 @@ async def simulador_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================================
-        // CONFIGURAÇÃO
-        // ============================================================
-        const USUARIO_LOGADO = {'logado': {'s': 'true' if logado else 'false'}};
-        
-        let dadosCotacao = null;  // Armazena os dados para imprimir/baixar
+        const USUARIO_LOGADO = {{logado: {{'s': 'true' if logado else 'false'}}}};
+        let dadosCotacao = null;
         
         function simularFrete(event) {{
             event.preventDefault();
@@ -246,15 +238,12 @@ async def simulador_page(request: Request):
             `;
             document.getElementById('areaBotoes').style.display = 'none';
             
-            // Chamar a API de simulação
             fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&valor_nf=${{valorNF}}&modalidade=${{modalidade}}`)
                 .then(response => response.json())
                 .then(data => {{
                     if (data.success) {{
                         dadosCotacao = data;
                         exibirResultado(data);
-                        
-                        // Mostrar botões de ação
                         const areaBotoes = document.getElementById('areaBotoes');
                         areaBotoes.style.display = 'block';
                         areaBotoes.innerHTML = gerarBotoes();
@@ -275,7 +264,6 @@ async def simulador_page(request: Request):
         
         function exibirResultado(data) {{
             const resultado = document.getElementById('resultado');
-            
             const seguro = data.seguro || 0;
             const freteTotal = data.frete + seguro;
             
@@ -369,16 +357,11 @@ async def simulador_page(request: Request):
             }}
         }}
         
-        // ============================================================
-        // FUNÇÕES PARA IMPRIMIR / BAIXAR COTAÇÃO
-        // ============================================================
-        
         function imprimirCotacao() {{
             if (!dadosCotacao) {{
                 alert('Nenhuma cotação encontrada para imprimir.');
                 return;
             }}
-            
             const janela = window.open('', '_blank', 'width=800,height=600');
             janela.document.write(gerarHTML_Cotacao(dadosCotacao));
             janela.document.close();
@@ -392,7 +375,6 @@ async def simulador_page(request: Request):
                 alert('Nenhuma cotação encontrada para baixar.');
                 return;
             }}
-            
             const htmlContent = gerarHTML_Cotacao(dadosCotacao);
             const blob = new Blob([htmlContent], {{ type: 'text/html' }});
             const url = URL.createObjectURL(blob);
