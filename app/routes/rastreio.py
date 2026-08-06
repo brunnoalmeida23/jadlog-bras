@@ -15,6 +15,26 @@ router = APIRouter(prefix="/rastreio", tags=["Rastreio"])
 async def rastreio_page(request: Request):
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
+    
+    # Botões de ação (aparecem apenas se logado)
+    botoes_acao = ""
+    if logado:
+        botoes_acao = """
+            <div class="botoes-acao mt-4 text-center">
+                <button class="btn btn-jadlog" onclick="imprimirOS()">
+                    <i class="bi bi-printer"></i> Imprimir OS
+                </button>
+            </div>
+        """
+    else:
+        botoes_acao = """
+            <div class="botoes-acao mt-4 text-center">
+                <button class="btn btn-jadlog" onclick="baixarOS()">
+                    <i class="bi bi-download"></i> Baixar OS
+                </button>
+            </div>
+        """
+    
     botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
     
     return f"""
@@ -30,6 +50,8 @@ async def rastreio_page(request: Request):
         .bg-jadlog {{ background: #E31E24; }}
         .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
         .btn-jadlog:hover {{ background: #B81217; color: white; }}
+        .btn-jadlog-outline {{ background: transparent; color: #E31E24; border: 2px solid #E31E24; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog-outline:hover {{ background: #E31E24; color: white; }}
         .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
         .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
         .nav-link {{ color: white !important; }}
@@ -118,6 +140,17 @@ async def rastreio_page(request: Request):
             color: #E31E24;
             margin-bottom: 15px;
         }}
+        
+        .botoes-acao {{
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }}
+        
+        .botoes-acao .btn {{
+            min-width: 180px;
+        }}
     </style>
 </head>
 <body>
@@ -163,6 +196,11 @@ async def rastreio_page(request: Request):
                         </button>
                     </div>
                     <div id="resultado" class="mt-4"></div>
+                    
+                    <!-- Área onde os botões serão exibidos -->
+                    <div id="areaBotoes">
+                        {botoes_acao}
+                    </div>
                 </div>
             </div>
         </div>
@@ -177,7 +215,8 @@ async def rastreio_page(request: Request):
         // ============================================================
         // CONFIGURAÇÃO DA URL DA API
         // ============================================================
-        const API_URL = 'https://jadlog-api.onrender.com';  // API de rastreio na porta 8001
+        const API_URL = 'https://jadlog-api.onrender.com';
+        let dadosRastreio = null;  // Armazena os dados para imprimir/baixar
         
         function buscarRastreio() {{
             const codigo = document.getElementById('codigoRastreio').value.trim();
@@ -196,13 +235,20 @@ async def rastreio_page(request: Request):
                 </div>
             `;
             
+            // Esconder botões enquanto carrega
+            document.getElementById('areaBotoes').style.display = 'none';
+            
             fetch(`${{API_URL}}/rastreio/${{encodeURIComponent(codigo)}}`)
                 .then(response => response.json())
                 .then(data => {{
                     if (data.success) {{
+                        dadosRastreio = data;
                         exibirResultado(data);
+                        // Mostrar botões novamente
+                        document.getElementById('areaBotoes').style.display = 'block';
                     }} else {{
                         resultado.innerHTML = `<div class="alert alert-danger">${{data.message || 'Erro ao buscar rastreio'}}</div>`;
+                        document.getElementById('areaBotoes').style.display = 'none';
                     }}
                 }})
                 .catch(error => {{
@@ -214,6 +260,7 @@ async def rastreio_page(request: Request):
                             <small>Verifique se a API está rodando em ${{API_URL}}</small>
                         </div>
                     `;
+                    document.getElementById('areaBotoes').style.display = 'none';
                 }});
         }}
         
@@ -305,6 +352,112 @@ async def rastreio_page(request: Request):
             resultado.innerHTML = html;
             
             resultado.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+        
+        // ============================================================
+        // FUNÇÕES PARA IMPRIMIR / BAIXAR OS
+        // ============================================================
+        
+        function imprimirOS() {{
+            if (!dadosRastreio) {{
+                alert('Nenhum rastreio encontrado para imprimir.');
+                return;
+            }}
+            
+            // Criar uma nova janela para impressão
+            const janela = window.open('', '_blank', 'width=800,height=600');
+            janela.document.write(gerarHTML_OS(dadosRastreio));
+            janela.document.close();
+            janela.focus();
+            janela.print();
+            janela.close();
+        }}
+        
+        function baixarOS() {{
+            if (!dadosRastreio) {{
+                alert('Nenhum rastreio encontrado para baixar.');
+                return;
+            }}
+            
+            // Criar o conteúdo HTML da OS
+            const htmlContent = gerarHTML_OS(dadosRastreio);
+            
+            // Criar um blob para download
+            const blob = new Blob([htmlContent], {{ type: 'text/html' }});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `OS_${{dadosRastreio.codigo}}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }}
+        
+        function gerarHTML_OS(data) {{
+            // Construir lista de eventos
+            let eventosHTML = '';
+            if (data.historico && data.historico.length > 0) {{
+                data.historico.forEach(evento => {{
+                    eventosHTML += `
+                        <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #E31E24;">
+                            <strong>${{evento.data || ''}} - ${{evento.hora || ''}}</strong><br>
+                            ${{evento.status || 'Evento'}}
+                        </div>
+                    `;
+                }});
+            }} else {{
+                eventosHTML = '<p style="color: #999;">Nenhum evento encontrado.</p>';
+            }}
+            
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>OS - Rastreio ${{data.codigo}}</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                        .header {{ text-align: center; border-bottom: 2px solid #E31E24; padding-bottom: 10px; margin-bottom: 20px; }}
+                        .header h1 {{ color: #E31E24; margin: 0; }}
+                        .info {{ background: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
+                        .evento {{ margin-bottom: 10px; padding: 8px; border-left: 3px solid #E31E24; }}
+                        .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }}
+                        .status {{ font-weight: bold; font-size: 1.1em; }}
+                        .status-entregue {{ color: #28a745; }}
+                        .status-coletado {{ color: #17a2b8; }}
+                        .status-caminho {{ color: #0d6efd; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>JADLOG BRÁS - ORDEM DE SERVIÇO</h1>
+                        <p>Rastreio de Encomenda</p>
+                    </div>
+                    
+                    <div class="info">
+                        <p><strong>Código:</strong> ${{data.codigo}}</p>
+                        ${{data.remessa ? `<p><strong>Remessa:</strong> ${{data.remessa}}</p>` : ''}}
+                        <p><strong>Status:</strong> <span class="status">${{data.status}}</span></p>
+                    </div>
+                    
+                    <h3 style="color: #E31E24;">Histórico do Rastreio</h3>
+                    ${{eventosHTML}}
+                    
+                    <div class="footer">
+                        <p>Documento gerado em: ${{new Date().toLocaleString('pt-BR')}}</p>
+                        <p>JADLOG BRÁS - Sistema de Rastreio</p>
+                    </div>
+                    
+                    <script>
+                        // Forçar a impressão se for uma janela popup
+                        if (window.name !== '') {{
+                            window.print();
+                        }}
+                    </scr" + "ipt>
+                </body>
+                </html>
+            `;
         }}
     </script>
 </body>
