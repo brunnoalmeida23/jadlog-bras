@@ -134,7 +134,7 @@ async def simulador_page(request: Request):
         }}
         
         .botoes-recibo .btn {{
-            min-width: 130px;
+            min-width: 100px;
         }}
         
         .form-label {{
@@ -294,20 +294,16 @@ async def simulador_page(request: Request):
                     </div>
                     
                     <div id="reciboConteudo">
-                        <!-- Recibo vazio (será preenchido pelo JavaScript) -->
+                        <!-- Recibo vazio -->
                         <div class="recibo-vazio" id="reciboVazio">
                             <i class="bi bi-receipt"></i>
                             <p class="mt-2">Preencha os dados e clique em<br><strong>"Calcular Frete"</strong></p>
                         </div>
                         
-                        <!-- Recibo com dados (oculto inicialmente) -->
+                        <!-- Recibo com dados -->
                         <div id="reciboPreenchido" style="display: none;">
-                            <div class="cotacao-numero" id="reciboNumero">COT-2026-0806-1109</div>
-                            
-                            <div id="reciboLinhas">
-                                <!-- Preenchido pelo JavaScript -->
-                            </div>
-                            
+                            <div class="cotacao-numero" id="reciboNumero">{num_cotacao}</div>
+                            <div id="reciboLinhas"></div>
                             <div class="recibo-observacao">
                                 <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
                                 <strong>Válidos até Dezembro de 2026</strong>
@@ -317,7 +313,7 @@ async def simulador_page(request: Request):
                     
                     <!-- Botões do recibo -->
                     <div class="botoes-recibo" id="botoesRecibo" style="display: none;">
-                        <button class="btn btn-jadlog btn-sm" onclick="imprimirCotacao()">
+                        <button class="btn btn-jadlog btn-sm" id="btnImprimir" onclick="imprimirCotacao()" style="display: none;">
                             <i class="bi bi-printer"></i> Imprimir
                         </button>
                         <button class="btn btn-jadlog-outline btn-sm" onclick="baixarCotacao()">
@@ -368,7 +364,6 @@ async def simulador_page(request: Request):
                         const dados = data.dados || data;
                         dadosCotacao = dados;
                         exibirRecibo(dados);
-                        document.getElementById('botoesRecibo').style.display = 'flex';
                     }} else {{
                         alert(data.erro || 'Erro ao calcular frete');
                     }}
@@ -426,6 +421,17 @@ async def simulador_page(request: Request):
                     <strong>Válidos até Dezembro de 2026</strong>
                 </div>
             `;
+            
+            // Mostrar botões e controlar visibilidade do "Imprimir"
+            const botoesRecibo = document.getElementById('botoesRecibo');
+            botoesRecibo.style.display = 'flex';
+            
+            const btnImprimir = document.getElementById('btnImprimir');
+            if (USUARIO_LOGADO) {{
+                btnImprimir.style.display = 'inline-block';
+            }} else {{
+                btnImprimir.style.display = 'none';
+            }}
         }}
         
         function novaCotacao() {{
