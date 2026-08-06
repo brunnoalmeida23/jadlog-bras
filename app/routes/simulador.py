@@ -224,20 +224,13 @@ async def simulador_page(request: Request):
                         <div class="mb-3">
                             <label class="form-label">Dados do Cliente</label>
                             <div class="input-group input-group-sm">
-                                <input type="text" class="form-control" placeholder="CPF/CNPJ" id="cpfCliente" value="405.890.958-70">
+                                <input type="text" class="form-control" placeholder="CPF/CNPJ" id="cpfCliente">
                                 <button class="btn btn-jadlog btn-sm" type="button" onclick="buscarCliente()">
                                     <i class="bi bi-search"></i>
                                 </button>
                             </div>
-                            <div id="infoCliente" class="mt-2">
-                                <div class="cliente-encontrado">
-                                    <i class="bi bi-check-circle"></i> Cliente encontrado!
-                                </div>
-                                <div class="info-cliente">
-                                    <div class="nome">Bruno Henrique Fagundes de Almeida</div>
-                                    <div class="detalhes">Guarulhos/SP • 11987437462</div>
-                                </div>
-                            </div>
+                            <div id="infoCliente" class="mt-2" style="display: none;"></div>
+                            <div id="cadastroCliente" style="display: none;" class="mt-2"></div>
                         </div>
                         
                         <!-- Origem -->
@@ -249,7 +242,7 @@ async def simulador_page(request: Request):
                         <!-- CEP -->
                         <div class="mb-3">
                             <label class="form-label">CEP de Destino</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Ex: 01000-000" id="cepDestino" value="07071060">
+                            <input type="text" class="form-control form-control-sm" placeholder="Ex: 01000-000" id="cepDestino">
                             <small class="text-muted" style="font-size: 0.7rem;">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
                         </div>
                         
@@ -257,12 +250,12 @@ async def simulador_page(request: Request):
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="form-label">Peso (kg)</label>
-                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 2.350" id="peso" value="10" step="0.001">
+                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 2.350" id="peso" step="0.001">
                                 <small class="text-muted" style="font-size: 0.7rem;">Ex: 2.350</small>
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Valor NF (R$)</label>
-                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 5000.00" id="valorNF" value="100" step="0.01">
+                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 5000.00" id="valorNF" step="0.01">
                                 <small class="text-muted" style="font-size: 0.7rem;">Seguro: 0,66% se NF > R$ 100</small>
                             </div>
                         </div>
@@ -339,7 +332,26 @@ async def simulador_page(request: Request):
         let dadosCotacao = null;
         
         function buscarCliente() {{
-            // Função já integrada ao formulário
+            const cpf = document.getElementById('cpfCliente').value.trim();
+            const infoDiv = document.getElementById('infoCliente');
+            
+            if (!cpf) {{
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = '<div class="alert alert-warning">Digite um CPF/CNPJ para buscar.</div>';
+                return;
+            }}
+            
+            // Simulação - cliente encontrado
+            infoDiv.style.display = 'block';
+            infoDiv.innerHTML = `
+                <div class="cliente-encontrado">
+                    <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
+                </div>
+                <div class="info-cliente">
+                    <div class="nome">Bruno Henrique Fagundes de Almeida</div>
+                    <div class="detalhes">Guarulhos/SP • 11987437462</div>
+                </div>
+            `;
         }}
         
         function calcularFrete() {{
