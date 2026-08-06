@@ -1,15 +1,16 @@
 # app/routes/simulador.py
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
 from app.services.sessao import sessoes
+from app.services.calculo_frete import calcular_frete
 
 router = APIRouter(prefix="/simulador", tags=["Simulador"])
-
 
 @router.get("/", response_class=HTMLResponse)
 async def simulador_page(request: Request):
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
+    
     botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
     
     return f"""
@@ -25,6 +26,8 @@ async def simulador_page(request: Request):
         .bg-jadlog {{ background: #E31E24; }}
         .btn-jadlog {{ background: #E31E24; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
         .btn-jadlog:hover {{ background: #B81217; color: white; }}
+        .btn-jadlog-outline {{ background: transparent; color: #E31E24; border: 2px solid #E31E24; padding: 10px 30px; border-radius: 8px; }}
+        .btn-jadlog-outline:hover {{ background: #E31E24; color: white; }}
         .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
         .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
         .nav-link {{ color: white !important; }}
@@ -33,10 +36,97 @@ async def simulador_page(request: Request):
         .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
         .nav-link.login-btn:hover {{ background: #f0f0f0; }}
         .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
-        .result-box {{ background: #f8f9fa; border-radius: 8px; padding: 20px; margin-top: 20px; }}
-        .cotacao-item {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }}
-        .cotacao-item:last-child {{ border-bottom: none; }}
-        .total {{ font-weight: bold; font-size: 1.2rem; color: #E31E24; }}
+        
+        .search-box {{
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            text-align: center;
+        }}
+        
+        .search-box h2 {{
+            color: #E31E24;
+            margin-bottom: 20px;
+        }}
+        
+        .search-box .input-group {{
+            max-width: 500px;
+            margin: 0 auto;
+        }}
+        
+        .resultado-item {{
+            border-left: 4px solid #E31E24;
+            margin-bottom: 15px;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s;
+        }}
+        
+        .resultado-item:hover {{
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }}
+        
+        .resultado-item .label {{
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }}
+        
+        .resultado-item .valor {{
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #212529;
+        }}
+        
+        .valor-frete {{
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #E31E24;
+        }}
+        
+        .loading {{
+            text-align: center;
+            padding: 30px;
+        }}
+        
+        .loading .spinner {{
+            animation: spin 1s linear infinite;
+            font-size: 2rem;
+        }}
+        
+        @keyframes spin {{
+            100% {{ transform: rotate(360deg); }}
+        }}
+        
+        .search-icon {{
+            font-size: 3rem;
+            color: #E31E24;
+            margin-bottom: 15px;
+        }}
+        
+        .botoes-acao {{
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }}
+        
+        .botoes-acao .btn {{
+            min-width: 180px;
+        }}
+        
+        .form-control:focus {{
+            border-color: #E31E24;
+            box-shadow: 0 0 0 0.2rem rgba(227, 30, 36, 0.25);
+        }}
+        
+        select.form-control {{
+            appearance: auto;
+        }}
     </style>
 </head>
 <body>
@@ -64,53 +154,57 @@ async def simulador_page(request: Request):
     </nav>
 
     <main class="container py-4">
-        <div class="row">
-            <div class="col-lg-6">
-                <h2 class="mb-4" style="color: #E31E24;">Simular Frete</h2>
-                <div class="card card-shadow">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">CEP de Destino</label>
-                            <input type="text" class="form-control" id="cep" placeholder="Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)">
-                            <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Peso (kg)</label>
-                            <input type="number" class="form-control" id="peso" placeholder="Ex: 2.350" step="0.001">
-                            <small class="text-muted">Ex: 2.350</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Valor da NF (R$)</label>
-                            <input type="number" class="form-control" id="valorNf" placeholder="Ex: 5000.00" step="0.01">
-                            <small class="text-muted">Ex: 5000.00</small>
-                            <small class="text-muted d-block">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Modalidade</label>
-                            <div class="d-flex gap-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="modalidade" id="package" value="PACKAGE" checked>
-                                    <label class="form-check-label" for="package">PACKAGE</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="modalidade" id="com" value=".COM">
-                                    <label class="form-check-label" for="com">.COM</label>
-                                </div>
-                            </div>
-                            <small class="text-muted">Selecione a modalidade desejada para o frete</small>
-                        </div>
-                        <button class="btn btn-jadlog w-100" onclick="calcularFrete()">
-                            <i class="bi bi-calculator me-2"></i>Calcular Frete
-                        </button>
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="search-box">
+                    <div class="search-icon">
+                        <i class="bi bi-calculator"></i>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <h2 class="mb-4" style="color: #E31E24;">Resultado da Cotação</h2>
-                <div class="card card-shadow">
-                    <div class="card-body" id="resultado">
-                        <p class="text-muted text-center mb-0">Preencha os dados ao lado<br>e clique em Calcular Frete</p>
+                    <h2>SIMULAR FRETE</h2>
+                    <p class="text-muted">Preencha os dados abaixo para simular o frete</p>
+                    
+                    <form id="formSimulador" onsubmit="simularFrete(event)">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">CEP de Destino</label>
+                                <input type="text" class="form-control form-control-lg" 
+                                       placeholder="Ex: 01000-000" id="cepDestino" value="07071060" required>
+                                <small class="text-muted">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Peso (kg)</label>
+                                <input type="number" class="form-control form-control-lg" 
+                                       placeholder="Ex: 2.350" id="peso" value="10" step="0.001" required>
+                                <small class="text-muted">Ex: 2.350</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Valor da NF (R$)</label>
+                                <input type="number" class="form-control form-control-lg" 
+                                       placeholder="Ex: 5000.00" id="valorNF" value="100" step="0.01" required>
+                                <small class="text-muted">Seguro: 0,66% do valor da NF (se NF > R$ 100)</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Modalidade</label>
+                                <select class="form-control form-control-lg" id="modalidade">
+                                    <option value="PACKAGE">PACKAGE</option>
+                                    <option value=".COM">.COM</option>
+                                </select>
+                                <small class="text-muted">Selecione a modalidade desejada para o frete</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-jadlog btn-lg">
+                                <i class="bi bi-calculator"></i> Simular Frete
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="resultado" class="mt-4"></div>
+                    
+                    <!-- Área onde os botões serão exibidos -->
+                    <div id="areaBotoes" style="display: none;">
+                        <!-- Os botões são inseridos via JavaScript -->
                     </div>
                 </div>
             </div>
@@ -123,45 +217,265 @@ async def simulador_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function calcularFrete() {{
-            const cep = document.getElementById('cep').value;
-            const peso = document.getElementById('peso').value;
-            const valorNf = document.getElementById('valorNf').value;
-            const modalidade = document.querySelector('input[name="modalidade"]:checked').value;
+        // ============================================================
+        // CONFIGURAÇÃO
+        // ============================================================
+        const USUARIO_LOGADO = {'logado': {'s': 'true' if logado else 'false'}};
+        
+        let dadosCotacao = null;  // Armazena os dados para imprimir/baixar
+        
+        function simularFrete(event) {{
+            event.preventDefault();
+            
+            const cep = document.getElementById('cepDestino').value.trim();
+            const peso = parseFloat(document.getElementById('peso').value);
+            const valorNF = parseFloat(document.getElementById('valorNF').value);
+            const modalidade = document.getElementById('modalidade').value;
             const resultado = document.getElementById('resultado');
             
-            if (!cep || !peso) {{
-                resultado.innerHTML = '<div class="alert alert-warning">Preencha CEP e Peso.</div>';
+            if (!cep || !peso || !valorNF) {{
+                resultado.innerHTML = '<div class="alert alert-warning">Preencha todos os campos.</div>';
                 return;
             }}
             
-            resultado.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"></div><p>Calculando...</p></div>';
+            resultado.innerHTML = `
+                <div class="loading">
+                    <div class="spinner">⏳</div>
+                    <p class="mt-2">Simulando frete...</p>
+                </div>
+            `;
+            document.getElementById('areaBotoes').style.display = 'none';
             
-            fetch(`/api/calcular-frete?cep=${{cep}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNf || 0}}`)
+            // Chamar a API de simulação
+            fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&valor_nf=${{valorNF}}&modalidade=${{modalidade}}`)
                 .then(response => response.json())
                 .then(data => {{
                     if (data.success) {{
-                        const d = data.dados;
-                        resultado.innerHTML = `
-                            <div class="result-box">
-                                <div class="cotacao-item"><span>CEP</span><span><strong>${{d.cep}}</strong></span></div>
-                                <div class="cotacao-item"><span>Destino</span><span><strong>${{d.cidade}}/${{d.uf}}</strong></span></div>
-                                <div class="cotacao-item"><span>Tipo</span><span><strong>${{d.tipo_tarifa}}</strong></span></div>
-                                <div class="cotacao-item"><span>Prazo</span><span><strong>${{d.prazo}} dias úteis</strong></span></div>
-                                <div class="cotacao-item"><span>Peso</span><span><strong>${{d.peso}} kg</strong></span></div>
-                                <div class="cotacao-item"><span>Modalidade</span><span><strong>${{d.modalidade}}</strong></span></div>
-                                <div class="cotacao-item"><span>Valor do Frete</span><span><strong>R$ ${{d.preco_final}}</strong></span></div>
-                                <div class="cotacao-item"><span>Seguro</span><span><strong>R$ ${{d.ad_valorem}}</strong></span></div>
-                                <div class="cotacao-item total"><span>Frete Total</span><span><strong>R$ ${{d.total}}</strong></span></div>
-                            </div>
-                        `;
+                        dadosCotacao = data;
+                        exibirResultado(data);
+                        
+                        // Mostrar botões de ação
+                        const areaBotoes = document.getElementById('areaBotoes');
+                        areaBotoes.style.display = 'block';
+                        areaBotoes.innerHTML = gerarBotoes();
                     }} else {{
-                        resultado.innerHTML = `<div class="alert alert-danger">${{data.erro || 'Erro ao calcular frete'}}</div>`;
+                        resultado.innerHTML = `<div class="alert alert-danger">${{data.message || 'Erro ao simular frete'}}</div>`;
                     }}
                 }})
-                .catch(() => {{
-                    resultado.innerHTML = '<div class="alert alert-danger">Erro ao conectar com o servidor.</div>';
+                .catch(error => {{
+                    console.error('Erro:', error);
+                    resultado.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Erro ao simular frete. Tente novamente.
+                        </div>
+                    `;
                 }});
+        }}
+        
+        function exibirResultado(data) {{
+            const resultado = document.getElementById('resultado');
+            
+            const seguro = data.seguro || 0;
+            const freteTotal = data.frete + seguro;
+            
+            let html = `
+                <div class="card card-shadow mt-3 text-start">
+                    <h5 class="text-center mb-3" style="color: #E31E24;">
+                        <i class="bi bi-box"></i> RESULTADO DA COTAÇÃO
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="resultado-item">
+                                <div class="label">CEP</div>
+                                <div class="valor">${{data.cep}}</div>
+                            </div>
+                            <div class="resultado-item">
+                                <div class="label">Destino</div>
+                                <div class="valor">${{data.cidade || 'N/A'}}/${{data.uf || 'N/A'}}</div>
+                            </div>
+                            <div class="resultado-item">
+                                <div class="label">Tipo</div>
+                                <div class="valor">${{data.tipo || 'N/A'}}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="resultado-item">
+                                <div class="label">Prazo</div>
+                                <div class="valor">${{data.prazo || 'N/A'}} dias úteis</div>
+                            </div>
+                            <div class="resultado-item">
+                                <div class="label">Peso</div>
+                                <div class="valor">${{data.peso || 'N/A'}} kg</div>
+                            </div>
+                            <div class="resultado-item">
+                                <div class="label">Modalidade</div>
+                                <div class="valor">${{data.modalidade || 'N/A'}}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="resultado-item">
+                                <div class="label">Valor do Frete</div>
+                                <div class="valor valor-frete">R$ ${{data.frete.toFixed(2)}}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="resultado-item">
+                                <div class="label">Seguro</div>
+                                <div class="valor">R$ ${{seguro.toFixed(2)}}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="resultado-item" style="border-left-color: #28a745;">
+                                <div class="label">Frete Total</div>
+                                <div class="valor valor-frete" style="color: #28a745;">R$ ${{freteTotal.toFixed(2)}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultado.innerHTML = html;
+        }}
+        
+        function gerarBotoes() {{
+            const logado = USUARIO_LOGADO.logado.s === 'true';
+            
+            if (logado) {{
+                return `
+                    <div class="botoes-acao">
+                        <button class="btn btn-jadlog" onclick="imprimirCotacao()">
+                            <i class="bi bi-printer"></i> Imprimir Cotação
+                        </button>
+                        <button class="btn btn-jadlog-outline" onclick="baixarCotacao()">
+                            <i class="bi bi-download"></i> Baixar Cotação
+                        </button>
+                    </div>
+                `;
+            }} else {{
+                return `
+                    <div class="botoes-acao">
+                        <button class="btn btn-jadlog" onclick="baixarCotacao()">
+                            <i class="bi bi-download"></i> Baixar Cotação
+                        </button>
+                    </div>
+                `;
+            }}
+        }}
+        
+        // ============================================================
+        // FUNÇÕES PARA IMPRIMIR / BAIXAR COTAÇÃO
+        // ============================================================
+        
+        function imprimirCotacao() {{
+            if (!dadosCotacao) {{
+                alert('Nenhuma cotação encontrada para imprimir.');
+                return;
+            }}
+            
+            const janela = window.open('', '_blank', 'width=800,height=600');
+            janela.document.write(gerarHTML_Cotacao(dadosCotacao));
+            janela.document.close();
+            janela.focus();
+            janela.print();
+            janela.close();
+        }}
+        
+        function baixarCotacao() {{
+            if (!dadosCotacao) {{
+                alert('Nenhuma cotação encontrada para baixar.');
+                return;
+            }}
+            
+            const htmlContent = gerarHTML_Cotacao(dadosCotacao);
+            const blob = new Blob([htmlContent], {{ type: 'text/html' }});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cotacao_${{dadosCotacao.cep}}_${{new Date().toISOString().slice(0,10)}}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }}
+        
+        function gerarHTML_Cotacao(data) {{
+            const seguro = data.seguro || 0;
+            const freteTotal = data.frete + seguro;
+            
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Cotação de Frete - JADLOG BRÁS</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                        .header {{ text-align: center; border-bottom: 2px solid #E31E24; padding-bottom: 10px; margin-bottom: 20px; }}
+                        .header h1 {{ color: #E31E24; margin: 0; }}
+                        .info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                        .info-item {{ margin-bottom: 5px; }}
+                        .info-item .label {{ font-weight: bold; }}
+                        .detalhes {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }}
+                        .detalhes-item {{ padding: 8px; border-left: 3px solid #E31E24; }}
+                        .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }}
+                        .frete-total {{ font-size: 1.8rem; font-weight: bold; color: #28a745; text-align: center; padding: 15px; background: #f0f8f0; border-radius: 8px; margin-top: 15px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>JADLOG BRÁS</h1>
+                        <h2>Cotação de Frete</h2>
+                    </div>
+                    
+                    <div class="info">
+                        <div class="info-item"><span class="label">Data:</span> ${{new Date().toLocaleString('pt-BR')}}</div>
+                        <div class="info-item"><span class="label">CEP de Destino:</span> ${{data.cep}}</div>
+                        <div class="info-item"><span class="label">Peso:</span> ${{data.peso}} kg</div>
+                        <div class="info-item"><span class="label">Valor da NF:</span> R$ ${{data.valor_nf || 'N/A'}}</div>
+                        <div class="info-item"><span class="label">Modalidade:</span> ${{data.modalidade}}</div>
+                    </div>
+                    
+                    <div class="detalhes">
+                        <div class="detalhes-item">
+                            <strong>Destino</strong><br>
+                            ${{data.cidade || 'N/A'}}/${{data.uf || 'N/A'}}
+                        </div>
+                        <div class="detalhes-item">
+                            <strong>Tipo</strong><br>
+                            ${{data.tipo || 'N/A'}}
+                        </div>
+                        <div class="detalhes-item">
+                            <strong>Prazo</strong><br>
+                            ${{data.prazo || 'N/A'}} dias úteis
+                        </div>
+                        <div class="detalhes-item">
+                            <strong>Valor do Frete</strong><br>
+                            R$ ${{data.frete.toFixed(2)}}
+                        </div>
+                        <div class="detalhes-item">
+                            <strong>Seguro</strong><br>
+                            R$ ${{seguro.toFixed(2)}}
+                        </div>
+                    </div>
+                    
+                    <div class="frete-total">
+                        Frete Total: R$ ${{freteTotal.toFixed(2)}}
+                    </div>
+                    
+                    <div class="footer">
+                        <p>JADLOG BRÁS - Sistema de Cotação de Frete</p>
+                        <p>Documento gerado em: ${{new Date().toLocaleString('pt-BR')}}</p>
+                    </div>
+                </body>
+                </html>
+            `;
         }}
     </script>
 </body>
