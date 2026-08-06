@@ -34,6 +34,8 @@ async def simulador_page(request: Request):
         .btn-jadlog-outline:hover {{ background: #E31E24; color: white; }}
         .btn-success-custom {{ background: #28a745; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
         .btn-success-custom:hover {{ background: #1e7e34; color: white; }}
+        .btn-secondary-custom {{ background: #6c757d; color: white; border: none; padding: 10px 30px; border-radius: 8px; }}
+        .btn-secondary-custom:hover {{ background: #5a6268; color: white; }}
         .card-shadow {{ background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 24px; }}
         .footer {{ background: #212529; color: white; padding: 15px 0; margin-top: 40px; text-align: center; }}
         .nav-link {{ color: white !important; }}
@@ -139,15 +141,13 @@ async def simulador_page(request: Request):
             border: 1px solid #c3e6cb;
         }}
         
-        .label-campo {{
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #495057;
-        }}
-        
-        .valor-campo {{
-            font-weight: 500;
-            font-size: 1rem;
+        .cliente-nao-encontrado {{
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
         }}
         
         .info-cliente {{
@@ -184,6 +184,14 @@ async def simulador_page(request: Request):
             border-radius: 8px;
         }}
         .btn-nova-cotacao:hover {{ background: #5a6268; color: white; }}
+        
+        .cadastro-cliente {{
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }}
     </style>
 </head>
 <body>
@@ -219,7 +227,7 @@ async def simulador_page(request: Request):
                     </div>
                     <h2>SIMULAR FRETE</h2>
                     
-                    <form id="formSimulador" onsubmit="simularFrete(event)">
+                    <form id="formSimulador" onsubmit="return false;">
                         <!-- Dados do Cliente -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Dados do Cliente</label>
@@ -227,16 +235,39 @@ async def simulador_page(request: Request):
                                 <input type="text" class="form-control" 
                                        placeholder="CPF/CNPJ" id="cpfCliente">
                                 <button class="btn btn-jadlog" type="button" onclick="buscarCliente()">
-                                    <i class="bi bi-search"></i>
+                                    <i class="bi bi-search"></i> Buscar
                                 </button>
                             </div>
-                            <div id="infoCliente" style="display: none;" class="mt-2">
-                                <div class="cliente-encontrado">
-                                    <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
-                                </div>
-                                <div class="info-cliente">
-                                    <div><strong id="nomeCliente">Bruno Henrique Fagundes de Almeida</strong></div>
-                                    <div id="enderecoCliente" class="text-muted">Guarulhos/SP • 11987437462</div>
+                            <div id="infoCliente" style="display: none;" class="mt-2"></div>
+                            
+                            <!-- Campos de cadastro (aparecem se cliente não encontrado) -->
+                            <div id="cadastroCliente" style="display: none;" class="cadastro-cliente mt-3">
+                                <h6 class="mb-3"><i class="bi bi-person-plus"></i> Cadastrar Novo Cliente</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Nome Completo</label>
+                                        <input type="text" class="form-control" id="nomeCliente" placeholder="Nome do cliente">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Telefone</label>
+                                        <input type="text" class="form-control" id="telefoneCliente" placeholder="(11) 99999-9999">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">E-mail</label>
+                                        <input type="email" class="form-control" id="emailCliente" placeholder="email@exemplo.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Endereço</label>
+                                        <input type="text" class="form-control" id="enderecoCliente" placeholder="Rua, número, bairro">
+                                    </div>
+                                    <div class="col-12 mt-2">
+                                        <button type="button" class="btn btn-success-custom btn-sm" onclick="salvarCliente()">
+                                            <i class="bi bi-save"></i> Salvar Cliente
+                                        </button>
+                                        <button type="button" class="btn btn-secondary-custom btn-sm" onclick="cancelarCadastro()">
+                                            Cancelar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -244,12 +275,7 @@ async def simulador_page(request: Request):
                         <!-- Origem -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Origem</label>
-                            <div class="row g-2">
-                                <div class="col-md-8">
-                                    <input type="text" class="form-control" 
-                                           value="Bras - SP (03000-000)" readonly disabled>
-                                </div>
-                            </div>
+                            <input type="text" class="form-control" value="Bras - SP (03000-000)" readonly disabled>
                         </div>
                         
                         <!-- CEP Destino -->
@@ -287,7 +313,7 @@ async def simulador_page(request: Request):
                         </div>
                         
                         <div class="mt-4">
-                            <button type="submit" class="btn btn-jadlog btn-lg w-100">
+                            <button type="button" class="btn btn-jadlog btn-lg w-100" onclick="calcularFrete()">
                                 <i class="bi bi-calculator"></i> Calcular Frete
                             </button>
                         </div>
@@ -311,18 +337,84 @@ async def simulador_page(request: Request):
         let dadosCotacao = null;
         const NUMERO_COTACAO = '{{num_cotacao}}';
         
+        // ============================================================
+        // FUNÇÕES DO CLIENTE
+        // ============================================================
+        
         function buscarCliente() {{
             const cpf = document.getElementById('cpfCliente').value.trim();
+            const infoDiv = document.getElementById('infoCliente');
+            const cadastroDiv = document.getElementById('cadastroCliente');
+            
             if (!cpf) {{
-                alert('Digite um CPF/CNPJ para buscar.');
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = '<div class="alert alert-warning">Digite um CPF/CNPJ para buscar.</div>';
                 return;
             }}
-            document.getElementById('infoCliente').style.display = 'block';
+            
+            // Simulação de busca - substituir por chamada à API
+            // Exemplo: cliente encontrado
+            const clienteEncontrado = true; // Mudar para false para testar cliente não encontrado
+            
+            if (clienteEncontrado) {{
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `
+                    <div class="cliente-encontrado">
+                        <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
+                    </div>
+                    <div class="info-cliente">
+                        <div><strong id="nomeClienteInfo">Bruno Henrique Fagundes de Almeida</strong></div>
+                        <div id="enderecoClienteInfo" class="text-muted">Guarulhos/SP • 11987437462</div>
+                    </div>
+                `;
+                cadastroDiv.style.display = 'none';
+            }} else {{
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `
+                    <div class="cliente-nao-encontrado">
+                        <i class="bi bi-exclamation-triangle"></i> Cliente não encontrado. Preencha os dados abaixo para cadastrar.
+                    </div>
+                `;
+                cadastroDiv.style.display = 'block';
+            }}
         }}
         
-        function simularFrete(event) {{
-            event.preventDefault();
+        function salvarCliente() {{
+            const nome = document.getElementById('nomeCliente').value.trim();
+            const telefone = document.getElementById('telefoneCliente').value.trim();
+            const email = document.getElementById('emailCliente').value.trim();
+            const endereco = document.getElementById('enderecoCliente').value.trim();
             
+            if (!nome || !telefone) {{
+                alert('Preencha pelo menos o Nome e Telefone.');
+                return;
+            }}
+            
+            // Simulação de salvamento - substituir por chamada à API
+            alert('Cliente cadastrado com sucesso!');
+            document.getElementById('cadastroCliente').style.display = 'none';
+            document.getElementById('infoCliente').innerHTML = `
+                <div class="cliente-encontrado">
+                    <i class="bi bi-check-circle"></i> Cliente cadastrado com sucesso!
+                </div>
+                <div class="info-cliente">
+                    <div><strong>${{nome}}</strong></div>
+                    <div class="text-muted">${{endereco || 'Endereço não informado'}} • ${{telefone}}</div>
+                </div>
+            `;
+        }}
+        
+        function cancelarCadastro() {{
+            document.getElementById('cadastroCliente').style.display = 'none';
+            document.getElementById('infoCliente').innerHTML = '';
+            document.getElementById('infoCliente').style.display = 'none';
+        }}
+        
+        // ============================================================
+        // FUNÇÕES DE CÁLCULO
+        // ============================================================
+        
+        function calcularFrete() {{
             const cep = document.getElementById('cepDestino').value.trim();
             const peso = parseFloat(document.getElementById('peso').value);
             const valorNF = parseFloat(document.getElementById('valorNF').value);
@@ -445,6 +537,10 @@ async def simulador_page(request: Request):
             
             resultado.innerHTML = html;
         }}
+        
+        // ============================================================
+        // FUNÇÕES DOS BOTÕES
+        // ============================================================
         
         function gerarBotoes() {{
             const logado = USUARIO_LOGADO;
