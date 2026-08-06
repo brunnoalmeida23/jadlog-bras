@@ -49,11 +49,6 @@ async def simulador_page(request: Request):
             margin-bottom: 20px;
         }}
         
-        .search-box .input-group {{
-            max-width: 500px;
-            margin: 0 auto;
-        }}
-        
         .resultado-item {{
             border-left: 4px solid #E31E24;
             margin-bottom: 15px;
@@ -154,7 +149,7 @@ async def simulador_page(request: Request):
 
     <main class="container py-4">
         <div class="row justify-content-center">
-            <div class="col-lg-10">
+            <div class="col-lg-8">
                 <div class="search-box">
                     <div class="search-icon">
                         <i class="bi bi-calculator"></i>
@@ -188,7 +183,7 @@ async def simulador_page(request: Request):
                                     <option value="PACKAGE">PACKAGE</option>
                                     <option value=".COM">.COM</option>
                                 </select>
-                                <small class="text-muted">Selecione a modalidade desejada para o frete</small>
+                                <small class="text-muted">Selecione a modalidade desejada</small>
                             </div>
                         </div>
                         
@@ -267,7 +262,7 @@ async def simulador_page(request: Request):
             const resultado = document.getElementById('resultado');
             
             const seguro = data.seguro || 0;
-            const freteTotal = data.preco_final || data.frete || 0;
+            const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
             
             let html = `
@@ -392,7 +387,7 @@ async def simulador_page(request: Request):
         
         function gerarHTML_Cotacao(data) {{
             const seguro = data.seguro || 0;
-            const freteTotal = data.preco_final || data.frete || 0;
+            const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
             
             return `
