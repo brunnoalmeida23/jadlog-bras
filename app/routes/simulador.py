@@ -238,17 +238,18 @@ async def simulador_page(request: Request):
             `;
             document.getElementById('areaBotoes').style.display = 'none';
             
-            fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&valor_nf=${{valorNF}}&modalidade=${{modalidade}}`)
+            fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNF}}`)
                 .then(response => response.json())
                 .then(data => {{
                     if (data.success) {{
-                        dadosCotacao = data;
-                        exibirResultado(data);
+                        const dados = data.dados || data;
+                        dadosCotacao = dados;
+                        exibirResultado(dados);
                         const areaBotoes = document.getElementById('areaBotoes');
                         areaBotoes.style.display = 'block';
                         areaBotoes.innerHTML = gerarBotoes();
                     }} else {{
-                        resultado.innerHTML = `<div class="alert alert-danger">${{data.message || 'Erro ao simular frete'}}</div>`;
+                        resultado.innerHTML = `<div class="alert alert-danger">${{data.erro || data.message || 'Erro ao simular frete'}}</div>`;
                     }}
                 }})
                 .catch(error => {{
@@ -264,8 +265,10 @@ async def simulador_page(request: Request):
         
         function exibirResultado(data) {{
             const resultado = document.getElementById('resultado');
+            
             const seguro = data.seguro || 0;
-            const freteTotal = data.frete + seguro;
+            const freteTotal = data.preco_final || data.frete || 0;
+            const valorFrete = data.preco_final || data.frete || 0;
             
             let html = `
                 <div class="card card-shadow mt-3 text-start">
@@ -277,7 +280,7 @@ async def simulador_page(request: Request):
                         <div class="col-md-6">
                             <div class="resultado-item">
                                 <div class="label">CEP</div>
-                                <div class="valor">${{data.cep}}</div>
+                                <div class="valor">${{data.cep || 'N/A'}}</div>
                             </div>
                             <div class="resultado-item">
                                 <div class="label">Destino</div>
@@ -285,7 +288,7 @@ async def simulador_page(request: Request):
                             </div>
                             <div class="resultado-item">
                                 <div class="label">Tipo</div>
-                                <div class="valor">${{data.tipo || 'N/A'}}</div>
+                                <div class="valor">${{data.tipo_tarifa || data.tipo || 'N/A'}}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -310,7 +313,7 @@ async def simulador_page(request: Request):
                         <div class="col-md-4">
                             <div class="resultado-item">
                                 <div class="label">Valor do Frete</div>
-                                <div class="valor valor-frete">R$ ${{data.frete.toFixed(2)}}</div>
+                                <div class="valor valor-frete">R$ ${{valorFrete.toFixed(2)}}</div>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -389,7 +392,8 @@ async def simulador_page(request: Request):
         
         function gerarHTML_Cotacao(data) {{
             const seguro = data.seguro || 0;
-            const freteTotal = data.frete + seguro;
+            const freteTotal = data.preco_final || data.frete || 0;
+            const valorFrete = data.preco_final || data.frete || 0;
             
             return `
                 <!DOCTYPE html>
@@ -418,10 +422,9 @@ async def simulador_page(request: Request):
                     
                     <div class="info">
                         <div class="info-item"><span class="label">Data:</span> ${{new Date().toLocaleString('pt-BR')}}</div>
-                        <div class="info-item"><span class="label">CEP de Destino:</span> ${{data.cep}}</div>
-                        <div class="info-item"><span class="label">Peso:</span> ${{data.peso}} kg</div>
-                        <div class="info-item"><span class="label">Valor da NF:</span> R$ ${{data.valor_nf || 'N/A'}}</div>
-                        <div class="info-item"><span class="label">Modalidade:</span> ${{data.modalidade}}</div>
+                        <div class="info-item"><span class="label">CEP de Destino:</span> ${{data.cep || 'N/A'}}</div>
+                        <div class="info-item"><span class="label">Peso:</span> ${{data.peso || 'N/A'}} kg</div>
+                        <div class="info-item"><span class="label">Modalidade:</span> ${{data.modalidade || 'N/A'}}</div>
                     </div>
                     
                     <div class="detalhes">
@@ -431,7 +434,7 @@ async def simulador_page(request: Request):
                         </div>
                         <div class="detalhes-item">
                             <strong>Tipo</strong><br>
-                            ${{data.tipo || 'N/A'}}
+                            ${{data.tipo_tarifa || data.tipo || 'N/A'}}
                         </div>
                         <div class="detalhes-item">
                             <strong>Prazo</strong><br>
@@ -439,7 +442,7 @@ async def simulador_page(request: Request):
                         </div>
                         <div class="detalhes-item">
                             <strong>Valor do Frete</strong><br>
-                            R$ ${{data.frete.toFixed(2)}}
+                            R$ ${{valorFrete.toFixed(2)}}
                         </div>
                         <div class="detalhes-item">
                             <strong>Seguro</strong><br>
