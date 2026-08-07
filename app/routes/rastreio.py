@@ -16,25 +16,6 @@ async def rastreio_page(request: Request):
     token = request.cookies.get("auth_token")
     logado = token and token in sessoes
     
-    # Botões de ação (aparecem apenas se logado)
-    botoes_acao = ""
-    if logado:
-        botoes_acao = """
-            <div class="botoes-acao mt-4 text-center">
-                <button class="btn btn-jadlog" onclick="imprimirOS()">
-                    <i class="bi bi-printer"></i> Imprimir OS
-                </button>
-            </div>
-        """
-    else:
-        botoes_acao = """
-            <div class="botoes-acao mt-4 text-center">
-                <button class="btn btn-jadlog" onclick="baixarOS()">
-                    <i class="bi bi-download"></i> Baixar OS
-                </button>
-            </div>
-        """
-    
     botao_menu = '<a class="nav-link" href="/logout">Sair</a>' if logado else '<a class="nav-link login-btn" href="/login">Login</a>'
     
     return f"""
@@ -59,7 +40,6 @@ async def rastreio_page(request: Request):
         .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
         .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
         .nav-link.login-btn:hover {{ background: #f0f0f0; }}
-        .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
         
         .search-box {{
             background: white;
@@ -146,6 +126,7 @@ async def rastreio_page(request: Request):
             justify-content: center;
             gap: 15px;
             flex-wrap: wrap;
+            margin-top: 20px;
         }}
         
         .botoes-acao .btn {{
@@ -158,7 +139,6 @@ async def rastreio_page(request: Request):
         <div class="container">
             <a class="navbar-brand" href="/">
                 <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
-                <span class="brand-text">JADLOG BRÁS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
@@ -198,9 +178,7 @@ async def rastreio_page(request: Request):
                     <div id="resultado" class="mt-4"></div>
                     
                     <!-- Área onde os botões serão exibidos -->
-                    <div id="areaBotoes">
-                        {botoes_acao}
-                    </div>
+                    <div id="areaBotoes" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -216,7 +194,8 @@ async def rastreio_page(request: Request):
         // CONFIGURAÇÃO DA URL DA API
         // ============================================================
         const API_URL = 'https://jadlog-api.onrender.com';
-        let dadosRastreio = null;  // Armazena os dados para imprimir/baixar
+        let dadosRastreio = null;
+        const USUARIO_LOGADO = {'true' if logado else 'false'};
         
         function buscarRastreio() {{
             const codigo = document.getElementById('codigoRastreio').value.trim();
@@ -235,7 +214,6 @@ async def rastreio_page(request: Request):
                 </div>
             `;
             
-            // Esconder botões enquanto carrega
             document.getElementById('areaBotoes').style.display = 'none';
             
             fetch(`${{API_URL}}/rastreio/${{encodeURIComponent(codigo)}}`)
@@ -244,7 +222,6 @@ async def rastreio_page(request: Request):
                     if (data.success) {{
                         dadosRastreio = data;
                         exibirResultado(data);
-                        // Mostrar botões novamente
                         document.getElementById('areaBotoes').style.display = 'block';
                     }} else {{
                         resultado.innerHTML = `<div class="alert alert-danger">${{data.message || 'Erro ao buscar rastreio'}}</div>`;
@@ -354,6 +331,29 @@ async def rastreio_page(request: Request):
             resultado.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
         }}
         
+        function gerarBotoes() {{
+            const logado = USUARIO_LOGADO;
+            let html = '<div class="botoes-acao">';
+            
+            // Só aparece se estiver logado
+            if (logado) {{
+                html += `
+                    <button class="btn btn-jadlog" onclick="imprimirOS()">
+                        <i class="bi bi-printer"></i> Imprimir OS
+                    </button>
+                `;
+            }}
+            
+            // Aparece para todos
+            html += `
+                <button class="btn btn-jadlog-outline" onclick="baixarOS()">
+                    <i class="bi bi-download"></i> Baixar OS
+                </button>
+            </div>`;
+            
+            return html;
+        }}
+        
         // ============================================================
         // FUNÇÕES PARA IMPRIMIR / BAIXAR OS
         // ============================================================
@@ -364,7 +364,6 @@ async def rastreio_page(request: Request):
                 return;
             }}
             
-            // Criar uma nova janela para impressão
             const janela = window.open('', '_blank', 'width=800,height=600');
             janela.document.write(gerarHTML_OS(dadosRastreio));
             janela.document.close();
@@ -379,10 +378,7 @@ async def rastreio_page(request: Request):
                 return;
             }}
             
-            // Criar o conteúdo HTML da OS
             const htmlContent = gerarHTML_OS(dadosRastreio);
-            
-            // Criar um blob para download
             const blob = new Blob([htmlContent], {{ type: 'text/html' }});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -395,7 +391,6 @@ async def rastreio_page(request: Request):
         }}
         
         function gerarHTML_OS(data) {{
-            // Construir lista de eventos
             let eventosHTML = '';
             if (data.historico && data.historico.length > 0) {{
                 data.historico.forEach(evento => {{
@@ -450,7 +445,6 @@ async def rastreio_page(request: Request):
                     </div>
                     
                     <script>
-                        // Forçar a impressão se for uma janela popup
                         if (window.name !== '') {{
                             window.print();
                         }}
