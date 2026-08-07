@@ -25,6 +25,11 @@ async def rastreio_page(request: Request):
     <title>Rastreio | JADLOG BRÁS</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icons/launchericon-192x192.png">
+    <meta name="theme-color" content="#E31E24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -453,6 +458,17 @@ async def rastreio_page(request: Request):
                 </html>
             `;
         }}
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(reg) {
+                    console.log('Service Worker registrado com sucesso!');
+                })
+                .catch(function(err) {
+                    console.log('Erro ao registrar Service Worker:', err);
+                });
+        }
     </script>
 </body>
 </html>
