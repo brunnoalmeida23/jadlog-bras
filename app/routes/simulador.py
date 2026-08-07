@@ -331,29 +331,31 @@ async def simulador_page(request: Request):
         const USUARIO_LOGADO = {'true' if logado else 'false'};
         let dadosCotacao = null;
         
-        function buscarCliente() {{
+        async function buscarCliente() {{
             const cpf = document.getElementById('cpfCliente').value.trim();
             const infoDiv = document.getElementById('infoCliente');
-            
             if (!cpf) {{
                 infoDiv.style.display = 'block';
                 infoDiv.innerHTML = '<div class="alert alert-warning">Digite um CPF/CNPJ para buscar.</div>';
                 return;
             }}
-            
-            // Simulação - cliente encontrado
             infoDiv.style.display = 'block';
-            infoDiv.innerHTML = `
-                <div class="cliente-encontrado">
-                    <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
-                </div>
-                <div class="info-cliente">
-                    <div class="nome">Bruno Henrique Fagundes de Almeida</div>
-                    <div class="detalhes">Guarulhos/SP • 11987437462</div>
-                </div>
-            `;
+            infoDiv.innerHTML = '<div class="text-muted">Buscando cliente...</div>';
+            try {{
+                const body = new URLSearchParams(); body.append('termo', cpf);
+                const resp = await fetch('/api/buscar-cliente', {{method:'POST', body}});
+                const data = await resp.json();
+                if (resp.ok && data.success && data.dados && data.dados.length) {{
+                    const c = data.dados[0];
+                    window.clienteAtual = c;
+                    infoDiv.innerHTML = `<div class="cliente-encontrado"><i class="bi bi-check-circle"></i> Cliente encontrado!</div><div class="info-cliente"><div class="nome">${{c.nome || c.razao_social || 'Cliente'}}</div><div class="detalhes">${{c.cidade || ''}}/${{c.uf || ''}} • ${{c.telefone || ''}}</div></div>`;
+                }} else {{
+                    window.clienteAtual = null;
+                    infoDiv.innerHTML = '<div class="alert alert-secondary py-2">Cliente não cadastrado. A cotação será salva com o CPF/CNPJ informado.</div>';
+                }}
+            }} catch(e) {{ infoDiv.innerHTML = '<div class="alert alert-danger py-2">Erro ao consultar cliente: '+e.message+'</div>'; }}
         }}
-        
+
         function calcularFrete() {{
             const cep = document.getElementById('cepDestino').value.trim();
             const peso = parseFloat(document.getElementById('peso').value);
@@ -376,6 +378,7 @@ async def simulador_page(request: Request):
                         const dados = data.dados || data;
                         dadosCotacao = dados;
                         exibirRecibo(dados);
+                        salvarCotacao(dados);
                     }} else {{
                         alert(data.erro || 'Erro ao calcular frete');
                     }}
@@ -446,6 +449,30 @@ async def simulador_page(request: Request):
             }}
         }}
         
+        async function salvarCotacao(data) {{
+            const cliente = window.clienteAtual || {{}};
+            const payload = {{
+                numero: NUMERO_COTACAO,
+                cpf_cliente: (document.getElementById('cpfCliente').value || '').replace(/\\D/g,''),
+                nome_cliente: cliente.nome || cliente.razao_social || '',
+                origem: 'Bras - SP',
+                cidade_destino: data.cidade || '',
+                uf_destino: data.uf || '',
+                prazo: data.prazo || 4,
+                tipo_tarifa: data.tipo_tarifa || '',
+                peso: data.peso || parseFloat(document.getElementById('peso').value) || 0,
+                modalidade: data.modalidade || document.getElementById('modalidade').value,
+                valor_frete: data.preco_final || data.frete || 0,
+                seguro: data.seguro || 0,
+                valor_total: data.total || data.preco_final || data.frete || 0
+            }};
+            try {{
+                const resp = await fetch('/api/cotacao/salvar', {{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
+                const r = await resp.json();
+                if (!resp.ok) console.error('Cotação calculada, mas não salva:', r);
+            }} catch(e) {{ console.error('Falha ao salvar cotação:', e); }}
+        }}
+
         function novaCotacao() {{
             document.getElementById('cepDestino').value = '';
             document.getElementById('peso').value = '';

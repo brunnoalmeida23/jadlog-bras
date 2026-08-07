@@ -19,3 +19,5 @@ openpyxl
 
 # Relatórios PDF
 reportlab==4.0.7
+# Variáveis de ambiente
+python-dotenv==1.0.1
