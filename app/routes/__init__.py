@@ -1,1 +1,1 @@
-﻿from . import home, simulador, api, rastreio
+﻿from . import home, simulador, consulta, api, rastreio
