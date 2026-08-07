@@ -32,7 +32,6 @@ async def home_page(request: Request):
         .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
         .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
         .nav-link.login-btn:hover {{ background: #f0f0f0; }}
-        .brand-text {{ color: white; font-size: 1.3rem; font-weight: 700; margin-left: 5px; }}
     </style>
 </head>
 <body>
@@ -40,7 +39,6 @@ async def home_page(request: Request):
         <div class="container">
             <a class="navbar-brand" href="/">
                 <img src="/static/img/logo-jadlog.png" alt="JADLOG BRÁS" class="logo-img">
-                <span class="brand-text">JADLOG BRÁS</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
