@@ -157,16 +157,6 @@ async def simulador_page(request: Request):
             font-size: 0.85rem;
         }}
         
-        .cliente-nao-encontrado {{
-            background: #f8d7da;
-            color: #721c24;
-            padding: 6px 12px;
-            border-radius: 6px;
-            margin: 5px 0;
-            border: 1px solid #f5c6cb;
-            font-size: 0.85rem;
-        }}
-        
         .info-cliente {{
             background: #f8f9fa;
             border-radius: 6px;
@@ -189,14 +179,6 @@ async def simulador_page(request: Request):
         .recibo-vazio i {{
             font-size: 3rem;
             color: #ddd;
-        }}
-        
-        .cadastro-cliente {{
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #dee2e6;
         }}
         
         @media (max-width: 768px) {{
@@ -248,35 +230,7 @@ async def simulador_page(request: Request):
                                 </button>
                             </div>
                             <div id="infoCliente" class="mt-2" style="display: none;"></div>
-                            <div id="cadastroCliente" style="display: none;" class="cadastro-cliente mt-3">
-                                <h6 class="mb-3"><i class="bi bi-person-plus"></i> Cadastrar Novo Cliente</h6>
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Nome Completo</label>
-                                        <input type="text" class="form-control" id="nomeCliente" placeholder="Nome do cliente">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Telefone</label>
-                                        <input type="text" class="form-control" id="telefoneCliente" placeholder="(11) 99999-9999">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">E-mail</label>
-                                        <input type="email" class="form-control" id="emailCliente" placeholder="email@exemplo.com">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small">Endereço</label>
-                                        <input type="text" class="form-control" id="enderecoCliente" placeholder="Rua, numero, bairro">
-                                    </div>
-                                    <div class="col-12 mt-2">
-                                        <button type="button" class="btn btn-success btn-sm" onclick="salvarCliente()">
-                                            <i class="bi bi-save"></i> Salvar Cliente
-                                        </button>
-                                        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarCadastro()">
-                                            Cancelar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <div id="cadastroCliente" style="display: none;" class="mt-2"></div>
                         </div>
                         
                         <!-- Origem -->
@@ -376,141 +330,156 @@ async def simulador_page(request: Request):
         const NUMERO_COTACAO = '{num_cotacao}';
         const USUARIO_LOGADO = {'true' if logado else 'false'};
         let dadosCotacao = null;
-        let clienteData = null;
         
-        function buscarCliente() {
+        async function buscarCliente() {{
             const cpf = document.getElementById('cpfCliente').value.trim();
             const infoDiv = document.getElementById('infoCliente');
             const cadastroDiv = document.getElementById('cadastroCliente');
-            
-            if (!cpf) {
+            if (!cpf) {{
                 infoDiv.style.display = 'block';
                 infoDiv.innerHTML = '<div class="alert alert-warning">Digite um CPF/CNPJ para buscar.</div>';
                 cadastroDiv.style.display = 'none';
+                cadastroDiv.innerHTML = '';
                 return;
-            }
-            
+            }}
             infoDiv.style.display = 'block';
-            infoDiv.innerHTML = '<div class="text-center p-2"><div class="spinner-border spinner-border-sm text-danger" role="status"></div> <span>Buscando...</span></div>';
+            infoDiv.innerHTML = '<div class="text-muted">Buscando cliente...</div>';
             cadastroDiv.style.display = 'none';
-            
-            fetch(`/api/cliente/buscar?cpf=${encodeURIComponent(cpf)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.encontrado) {
-                        clienteData = data.cliente;
-                        infoDiv.innerHTML = `
-                            <div class="cliente-encontrado">
-                                <i class="bi bi-check-circle"></i> Cliente encontrado! Dados carregados automaticamente.
+            cadastroDiv.innerHTML = '';
+            try {{
+                const body = new URLSearchParams();
+                body.append('termo', cpf);
+                const resp = await fetch('/api/buscar-cliente', {{method:'POST', body}});
+                const data = await resp.json();
+                if (resp.ok && data.success && data.dados && data.dados.length) {{
+                    const c = data.dados[0];
+                    window.clienteAtual = c;
+                    infoDiv.innerHTML = `<div class="cliente-encontrado"><i class="bi bi-check-circle"></i> Cliente encontrado!</div><div class="info-cliente"><div class="nome">${{c.nome || c.razao_social || 'Cliente'}}</div><div class="detalhes">${{c.cidade || ''}}/${{c.uf || ''}} • ${{c.telefone || ''}}</div></div>`;
+                }} else {{
+                    window.clienteAtual = null;
+                    infoDiv.innerHTML = '<div class="alert alert-warning py-2 mb-2"><i class="bi bi-person-plus"></i> Cliente não encontrado. Preencha os dados abaixo para cadastrar.</div>';
+                    cadastroDiv.innerHTML = `
+                        <div class="border rounded p-3 bg-light">
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label small mb-1">Nome / Razão Social</label>
+                                    <input type="text" class="form-control form-control-sm" id="nomeCliente" placeholder="Nome completo ou razão social">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">Telefone</label>
+                                    <input type="text" class="form-control form-control-sm" id="telefoneCliente" placeholder="(11) 99999-9999">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1">CEP</label>
+                                    <input type="text" class="form-control form-control-sm" id="cepCliente" placeholder="00000-000">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1">Endereço</label>
+                                    <input type="text" class="form-control form-control-sm" id="enderecoCliente" placeholder="Rua, número e bairro">
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label small mb-1">Cidade</label>
+                                    <input type="text" class="form-control form-control-sm" id="cidadeCliente" placeholder="Cidade">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">UF</label>
+                                    <input type="text" class="form-control form-control-sm text-uppercase" id="ufCliente" maxlength="2" placeholder="SP">
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <button type="button" class="btn btn-jadlog btn-sm w-100" onclick="salvarCliente()">
+                                        <i class="bi bi-person-plus"></i> Cadastrar Cliente
+                                    </button>
+                                </div>
                             </div>
-                            <div class="info-cliente">
-                                <div class="nome">${data.cliente.nome}</div>
-                                <div class="detalhes">${data.cliente.cidade || ''}/${data.cliente.uf || ''} • ${data.cliente.telefone || ''}</div>
-                            </div>
-                        `;
-                        cadastroDiv.style.display = 'none';
-                    } else {
-                        clienteData = null;
-                        infoDiv.innerHTML = `
-                            <div class="cliente-nao-encontrado">
-                                <i class="bi bi-exclamation-triangle"></i> Cliente nao encontrado. Preencha os dados abaixo para cadastrar.
-                            </div>
-                        `;
-                        cadastroDiv.style.display = 'block';
-                    }
-                })
-                .catch(() => {
-                    infoDiv.innerHTML = '<div class="alert alert-danger">Erro ao buscar cliente.</div>';
-                    cadastroDiv.style.display = 'none';
-                });
-        }
-        
-        function salvarCliente() {
-            const nome = document.getElementById('nomeCliente').value.trim();
-            const telefone = document.getElementById('telefoneCliente').value.trim();
+                        </div>`;
+                    cadastroDiv.style.display = 'block';
+                }}
+            }} catch(e) {{
+                window.clienteAtual = null;
+                cadastroDiv.style.display = 'none';
+                cadastroDiv.innerHTML = '';
+                infoDiv.innerHTML = '<div class="alert alert-danger py-2">Erro ao consultar cliente: '+e.message+'</div>';
+            }}
+        }}
+
+        async function salvarCliente() {{
             const cpf = document.getElementById('cpfCliente').value.trim();
-            
-            if (!nome || !telefone) {
-                alert('Preencha pelo menos o Nome e Telefone.');
+            const nome = (document.getElementById('nomeCliente')?.value || '').trim();
+            const telefone = (document.getElementById('telefoneCliente')?.value || '').trim();
+            const cep = (document.getElementById('cepCliente')?.value || '').trim();
+            const endereco = (document.getElementById('enderecoCliente')?.value || '').trim();
+            const cidade = (document.getElementById('cidadeCliente')?.value || '').trim();
+            const uf = (document.getElementById('ufCliente')?.value || '').trim().toUpperCase();
+            const infoDiv = document.getElementById('infoCliente');
+            const cadastroDiv = document.getElementById('cadastroCliente');
+
+            if (!nome) {{
+                alert('Informe o nome do cliente.');
                 return;
-            }
-            
-            const dados = {
-                cpf_cnpj: cpf,
-                nome: nome,
-                telefone: telefone,
-                email: document.getElementById('emailCliente').value.trim(),
-                endereco: document.getElementById('enderecoCliente').value.trim()
-            };
-            
-            fetch('/api/cliente/cadastrar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dados)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Cliente cadastrado com sucesso!');
-                    clienteData = data.cliente;
-                    document.getElementById('cadastroCliente').style.display = 'none';
-                    document.getElementById('infoCliente').innerHTML = `
-                        <div class="cliente-encontrado">
-                            <i class="bi bi-check-circle"></i> Cliente cadastrado com sucesso!
-                        </div>
-                        <div class="info-cliente">
-                            <div class="nome">${data.cliente.nome}</div>
-                            <div class="detalhes">${data.cliente.telefone || ''}</div>
-                        </div>
-                    `;
-                } else {
-                    alert('Erro ao cadastrar cliente: ' + data.message);
-                }
-            })
-            .catch(() => {
-                alert('Erro ao cadastrar cliente. Tente novamente.');
-            });
-        }
-        
-        function cancelarCadastro() {
-            document.getElementById('cadastroCliente').style.display = 'none';
-            document.getElementById('infoCliente').innerHTML = '';
-            document.getElementById('infoCliente').style.display = 'none';
-        }
-        
-        function calcularFrete() {
+            }}
+
+            const body = new URLSearchParams();
+            body.append('cpf_cnpj', cpf);
+            body.append('nome', nome);
+            body.append('razao_social', '');
+            body.append('telefone', telefone);
+            body.append('cep', cep);
+            body.append('endereco', endereco);
+            body.append('cidade', cidade);
+            body.append('uf', uf);
+
+            try {{
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = '<div class="text-muted">Cadastrando cliente...</div>';
+                const resp = await fetch('/api/salvar-cliente', {{method:'POST', body}});
+                const data = await resp.json();
+                if (!resp.ok || !data.success) {{
+                    throw new Error(data.message || data.erro || 'Não foi possível cadastrar o cliente.');
+                }}
+                const c = data.dados || {{}};
+                window.clienteAtual = c;
+                cadastroDiv.style.display = 'none';
+                cadastroDiv.innerHTML = '';
+                infoDiv.innerHTML = `<div class="cliente-encontrado"><i class="bi bi-check-circle"></i> Cliente cadastrado com sucesso!</div><div class="info-cliente"><div class="nome">${{c.nome || nome}}</div><div class="detalhes">${{c.cidade || cidade}}/${{c.uf || uf}} • ${{c.telefone || telefone}}</div></div>`;
+            }} catch(e) {{
+                infoDiv.innerHTML = '<div class="alert alert-danger py-2">Erro ao cadastrar cliente: '+e.message+'</div>';
+                cadastroDiv.style.display = 'block';
+            }}
+        }}
+
+        function calcularFrete() {{
             const cep = document.getElementById('cepDestino').value.trim();
             const peso = parseFloat(document.getElementById('peso').value);
             const valorNF = parseFloat(document.getElementById('valorNF').value);
             const modalidade = document.getElementById('modalidade').value;
             
-            if (!cep || !peso || !valorNF) {
+            if (!cep || !peso || !valorNF) {{
                 alert('Preencha todos os campos.');
                 return;
-            }
+            }}
             
             document.getElementById('reciboVazio').style.display = 'none';
             document.getElementById('reciboPreenchido').style.display = 'block';
             document.getElementById('reciboPreenchido').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-danger" role="status"></div><p class="mt-2">Calculando...</p></div>';
             
-            fetch(`/api/simular?cep=${encodeURIComponent(cep)}&peso=${peso}&modalidade=${modalidade}&valor_nf=${valorNF}`)
+            fetch(`/api/simular?cep=${{encodeURIComponent(cep)}}&peso=${{peso}}&modalidade=${{modalidade}}&valor_nf=${{valorNF}}`)
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
+                .then(data => {{
+                    if (data.success) {{
                         const dados = data.dados || data;
                         dadosCotacao = dados;
                         exibirRecibo(dados);
                         salvarCotacao(dados);
-                    } else {
+                    }} else {{
                         alert(data.erro || 'Erro ao calcular frete');
-                    }
-                })
-                .catch(() => {
+                    }}
+                }})
+                .catch(() => {{
                     alert('Erro ao calcular frete. Tente novamente.');
-                });
-        }
+                }});
+        }}
         
-        function exibirRecibo(data) {
+        function exibirRecibo(data) {{
             const seguro = data.seguro || 0;
             const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
@@ -532,87 +501,70 @@ async def simulador_page(request: Request):
                 ['Seguro', 'R$ ' + seguro.toFixed(2)]
             ];
             
-            itens.forEach(item => {
+            itens.forEach(item => {{
                 const classe = item[0] === 'Valor do Frete' ? 'valor-frete' : 
                               item[0] === 'Seguro' ? '' : '';
                 linhas += `
                     <div class="linha-recibo">
-                        <span class="label">${item[0]}</span>
-                        <span class="valor ${classe}">${item[1]}</span>
+                        <span class="label">${{item[0]}}</span>
+                        <span class="valor ${{classe}}">${{item[1]}}</span>
                     </div>
                 `;
-            });
+            }});
             
             linhas += `
                 <div class="linha-recibo" style="border-bottom: 2px solid #E31E24; padding-top: 10px; margin-top: 5px;">
                     <span class="label" style="font-size: 1rem;">Frete Total</span>
-                    <span class="valor valor-total">R$ ${freteTotal.toFixed(2)}</span>
+                    <span class="valor valor-total">R$ ${{freteTotal.toFixed(2)}}</span>
                 </div>
             `;
             
             document.getElementById('reciboPreenchido').innerHTML = `
-                <div class="cotacao-numero">${NUMERO_COTACAO}</div>
-                ${linhas}
+                <div class="cotacao-numero">${{NUMERO_COTACAO}}</div>
+                ${{linhas}}
                 <div class="recibo-observacao">
                     <i class="bi bi-info-circle"></i> VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br>
                     <strong>Válidos até Dezembro de 2026</strong>
                 </div>
             `;
             
+            // Mostrar botões e controlar visibilidade do "Imprimir"
             const botoesRecibo = document.getElementById('botoesRecibo');
             botoesRecibo.style.display = 'flex';
             
             const btnImprimir = document.getElementById('btnImprimir');
-            if (USUARIO_LOGADO) {
+            if (USUARIO_LOGADO) {{
                 btnImprimir.style.display = 'inline-block';
-            } else {
+            }} else {{
                 btnImprimir.style.display = 'none';
-            }
-        }
+            }}
+        }}
         
-        function salvarCotacao(dados) {
-            const cpf = document.getElementById('cpfCliente').value.trim();
-            const cep = document.getElementById('cepDestino').value.trim();
-            const peso = parseFloat(document.getElementById('peso').value);
-            const valorNF = parseFloat(document.getElementById('valorNF').value);
-            const modalidade = document.getElementById('modalidade').value;
-            
-            const dadosSalvar = {
+        async function salvarCotacao(data) {{
+            const cliente = window.clienteAtual || {{}};
+            const payload = {{
                 numero: NUMERO_COTACAO,
-                cpf_cliente: cpf || null,
-                nome_cliente: clienteData ? clienteData.nome : null,
-                telefone_cliente: clienteData ? clienteData.telefone : null,
-                email_cliente: clienteData ? clienteData.email : null,
-                endereco_cliente: clienteData ? clienteData.endereco : null,
+                cpf_cliente: (document.getElementById('cpfCliente').value || '').replace(/\\D/g,''),
+                nome_cliente: cliente.nome || cliente.razao_social || '',
                 origem: 'Bras - SP',
-                cep_destino: cep,
-                cidade_destino: dados.cidade || null,
-                uf_destino: dados.uf || null,
-                tipo_tarifa: dados.tipo_tarifa || null,
-                prazo: dados.prazo || null,
-                peso: peso,
-                modalidade: modalidade,
-                valor_frete: dados.preco_final || dados.frete || 0,
-                seguro: dados.seguro || 0,
-                valor_total: dados.total || dados.preco_final || dados.frete || 0,
-                valor_nf: valorNF
-            };
-            
-            fetch('/api/cotacao/salvar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dadosSalvar)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Cotacao salva:', data);
-            })
-            .catch(error => {
-                console.error('Erro ao salvar cotacao:', error);
-            });
-        }
-        
-        function novaCotacao() {
+                cidade_destino: data.cidade || '',
+                uf_destino: data.uf || '',
+                prazo: data.prazo || 4,
+                tipo_tarifa: data.tipo_tarifa || '',
+                peso: data.peso || parseFloat(document.getElementById('peso').value) || 0,
+                modalidade: data.modalidade || document.getElementById('modalidade').value,
+                valor_frete: data.preco_final || data.frete || 0,
+                seguro: data.seguro || 0,
+                valor_total: data.total || data.preco_final || data.frete || 0
+            }};
+            try {{
+                const resp = await fetch('/api/cotacao/salvar', {{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
+                const r = await resp.json();
+                if (!resp.ok) console.error('Cotação calculada, mas não salva:', r);
+            }} catch(e) {{ console.error('Falha ao salvar cotação:', e); }}
+        }}
+
+        function novaCotacao() {{
             document.getElementById('cepDestino').value = '';
             document.getElementById('peso').value = '';
             document.getElementById('valorNF').value = '';
@@ -621,32 +573,32 @@ async def simulador_page(request: Request):
             document.getElementById('botoesRecibo').style.display = 'none';
             dadosCotacao = null;
             document.getElementById('cepDestino').focus();
-        }
+        }}
         
-        function imprimirCotacao() {
-            if (!dadosCotacao) { alert('Nenhuma cotação para imprimir.'); return; }
+        function imprimirCotacao() {{
+            if (!dadosCotacao) {{ alert('Nenhuma cotação para imprimir.'); return; }}
             const janela = window.open('', '_blank', 'width=800,height=600');
             janela.document.write(gerarHTMLRecibo(dadosCotacao));
             janela.document.close();
             janela.focus();
             janela.print();
             janela.close();
-        }
+        }}
         
-        function baixarCotacao() {
-            if (!dadosCotacao) { alert('Nenhuma cotação para baixar.'); return; }
-            const blob = new Blob([gerarHTMLRecibo(dadosCotacao)], { type: 'text/html' });
+        function baixarCotacao() {{
+            if (!dadosCotacao) {{ alert('Nenhuma cotação para baixar.'); return; }}
+            const blob = new Blob([gerarHTMLRecibo(dadosCotacao)], {{ type: 'text/html' }});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Cotacao_${dadosCotacao.cep || 'CEP'}.html`;
+            a.download = `Cotacao_${{dadosCotacao.cep || 'CEP'}}.html`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        }
+        }}
         
-        function gerarHTMLRecibo(data) {
+        function gerarHTMLRecibo(data) {{
             const seguro = data.seguro || 0;
             const freteTotal = data.total || data.preco_final || data.frete || 0;
             const valorFrete = data.preco_final || data.frete || 0;
@@ -661,36 +613,36 @@ async def simulador_page(request: Request):
             <head><title>Cotação - JADLOG BRÁS</title>
             <meta charset="UTF-8">
             <style>
-                body{font-family:Arial;padding:30px;max-width:600px;margin:0 auto}
-                .header{text-align:center;border-bottom:2px solid #E31E24;padding-bottom:10px}
-                .header h1{color:#E31E24;margin:0;font-size:1.5rem}
-                .header h2{font-size:1.1rem;color:#555;margin:5px 0}
-                .numero{text-align:center;font-weight:bold;color:#E31E24;margin:15px 0;font-size:1rem}
-                .linha{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}
-                .label{font-weight:bold;color:#555}
-                .valor{font-weight:500}
-                .total{font-size:1.3rem;font-weight:bold;color:#28a745;text-align:center;padding:15px;background:#f0f8f0;border-radius:8px;margin:15px 0}
-                .obs{text-align:center;padding:10px;background:#fff3cd;border-radius:8px;border:1px solid #ffeeba;font-size:0.8rem;margin:15px 0}
-                .footer{text-align:center;margin-top:30px;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}
+                body{{font-family:Arial;padding:30px;max-width:600px;margin:0 auto}}
+                .header{{text-align:center;border-bottom:2px solid #E31E24;padding-bottom:10px}}
+                .header h1{{color:#E31E24;margin:0;font-size:1.5rem}}
+                .header h2{{font-size:1.1rem;color:#555;margin:5px 0}}
+                .numero{{text-align:center;font-weight:bold;color:#E31E24;margin:15px 0;font-size:1rem}}
+                .linha{{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}}
+                .label{{font-weight:bold;color:#555}}
+                .valor{{font-weight:500}}
+                .total{{font-size:1.3rem;font-weight:bold;color:#28a745;text-align:center;padding:15px;background:#f0f8f0;border-radius:8px;margin:15px 0}}
+                .obs{{text-align:center;padding:10px;background:#fff3cd;border-radius:8px;border:1px solid #ffeeba;font-size:0.8rem;margin:15px 0}}
+                .footer{{text-align:center;margin-top:30px;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}}
             </style>
             </head>
             <body>
                 <div class="header"><h1>JADLOG BRÁS</h1><h2>Cotação de Frete</h2></div>
-                <div class="numero">${NUMERO_COTACAO}</div>
+                <div class="numero">${{NUMERO_COTACAO}}</div>
                 <div class="linha"><span class="label">Origem</span><span class="valor">Bras - SP</span></div>
-                <div class="linha"><span class="label">Destino</span><span class="valor">${cidade}/${uf}</span></div>
-                <div class="linha"><span class="label">Prazo</span><span class="valor">${prazo} dias</span></div>
-                <div class="linha"><span class="label">Modalidade</span><span class="valor">${modalidade}</span></div>
-                <div class="linha"><span class="label">Tipo</span><span class="valor">${tipoTarifa}</span></div>
-                <div class="linha"><span class="label">Peso</span><span class="valor">${data.peso || 10} kg</span></div>
-                <div class="linha"><span class="label">Valor do Frete</span><span class="valor">R$ ${valorFrete.toFixed(2)}</span></div>
-                <div class="linha"><span class="label">Seguro</span><span class="valor">R$ ${seguro.toFixed(2)}</span></div>
-                <div class="total">Frete Total: R$ ${freteTotal.toFixed(2)}</div>
+                <div class="linha"><span class="label">Destino</span><span class="valor">${{cidade}}/${{uf}}</span></div>
+                <div class="linha"><span class="label">Prazo</span><span class="valor">${{prazo}} dias</span></div>
+                <div class="linha"><span class="label">Modalidade</span><span class="valor">${{modalidade}}</span></div>
+                <div class="linha"><span class="label">Tipo</span><span class="valor">${{tipoTarifa}}</span></div>
+                <div class="linha"><span class="label">Peso</span><span class="valor">${{data.peso || 10}} kg</span></div>
+                <div class="linha"><span class="label">Valor do Frete</span><span class="valor">R$ ${{valorFrete.toFixed(2)}}</span></div>
+                <div class="linha"><span class="label">Seguro</span><span class="valor">R$ ${{seguro.toFixed(2)}}</span></div>
+                <div class="total">Frete Total: R$ ${{freteTotal.toFixed(2)}}</div>
                 <div class="obs">VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br><strong>Válidos até Dezembro de 2026</strong></div>
                 <div class="footer"><p>JADLOG BRÁS - Sistema de Cotação de Frete</p></div>
             </body>
             </html>`;
-        }
+        }}
     </script>
 </body>
 </html>
