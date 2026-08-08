@@ -1,4 +1,4 @@
-﻿# app/routes/home.py
+# app/routes/home.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from app.services.sessao import sessoes
@@ -118,15 +118,15 @@ async def home_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {{
             navigator.serviceWorker.register('/sw.js')
-                .then(function(reg) {
+                .then(function(reg) {{
                     console.log('Service Worker registrado com sucesso!');
-                })
-                .catch(function(err) {
+                }})
+                .catch(function(err) {{
                     console.log('Erro ao registrar Service Worker:', err);
-                });
-        }
+                }});
+        }}
     </script>
 </body>
 </html>

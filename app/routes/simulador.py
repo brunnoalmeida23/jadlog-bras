@@ -648,15 +648,15 @@ async def simulador_page(request: Request):
         }}
     </script>
     <script>
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {{
             navigator.serviceWorker.register('/sw.js')
-                .then(function(reg) {
+                .then(function(reg) {{
                     console.log('Service Worker registrado com sucesso!');
-                })
-                .catch(function(err) {
+                }})
+                .catch(function(err) {{
                     console.log('Erro ao registrar Service Worker:', err);
-                });
-        }
+                }});
+        }}
     </script>
 </body>
 </html>
