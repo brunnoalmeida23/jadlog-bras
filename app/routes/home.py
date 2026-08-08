@@ -1,4 +1,4 @@
-﻿# app/routes/home.py
+# app/routes/home.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from app.services.sessao import sessoes
