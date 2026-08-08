@@ -40,9 +40,143 @@ async def home_page(request: Request):
         .install-app-area {{ display: none; margin-top: 24px; }}
         .btn-install-app {{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #212529; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.16); }}
         .btn-install-app:hover {{ background: #000; color: white; }}
+
+
+        /* SPLASH ANIMADA DO PWA */
+        #appSplash {{
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #E31E24;
+            color: #fff;
+            opacity: 1;
+            transition: opacity .42s ease, visibility .42s ease;
+        }}
+        #appSplash.splash-visible {{ display: flex; }}
+        #appSplash.splash-hide {{ opacity: 0; visibility: hidden; pointer-events: none; }}
+        .splash-content {{
+            width: min(88vw, 420px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transform: translateY(-1vh);
+        }}
+        .splash-logo-stage {{
+            position: relative;
+            width: 230px;
+            height: 230px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 28px;
+        }}
+        .splash-ring {{
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 122px; height: 122px;
+            border: 2px solid rgba(255,255,255,.62);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(.72);
+            opacity: 0;
+            animation: ondaJadlog 2.25s cubic-bezier(.2,.65,.35,1) infinite;
+        }}
+        .splash-ring.ring-2 {{ animation-delay: .72s; }}
+        .splash-ring.ring-3 {{ animation-delay: 1.44s; }}
+        @keyframes ondaJadlog {{
+            0% {{ transform: translate(-50%, -50%) scale(.72); opacity: 0; }}
+            14% {{ opacity: .62; }}
+            72% {{ opacity: .18; }}
+            100% {{ transform: translate(-50%, -50%) scale(1.78); opacity: 0; }}
+        }}
+        .splash-logo-card {{
+            position: relative;
+            z-index: 3;
+            width: 130px; height: 130px;
+            border-radius: 31px;
+            overflow: hidden;
+            background: #fff;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 12px 35px rgba(0,0,0,.20);
+            animation: logoRespira 1.9s ease-in-out infinite;
+        }}
+        .splash-logo-card img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+        @keyframes logoRespira {{
+            0%, 100% {{ transform: scale(1); }}
+            50% {{ transform: scale(1.035); }}
+        }}
+        .splash-title {{
+            margin: 0;
+            font-size: clamp(2rem, 8vw, 2.75rem);
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: .02em;
+            color: #fff;
+        }}
+        .splash-subtitle {{
+            margin-top: 12px;
+            font-size: clamp(.78rem, 3.2vw, 1rem);
+            font-weight: 500;
+            letter-spacing: .30em;
+            padding-left: .30em;
+            color: rgba(255,255,255,.96);
+        }}
+        .splash-loader {{ width: min(72vw, 310px); margin-top: 62px; }}
+        .splash-loader-track {{
+            position: relative;
+            height: 5px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255,255,255,.23);
+        }}
+        .splash-loader-progress {{
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 42%;
+            border-radius: inherit;
+            background: #fff;
+            box-shadow: 0 0 12px rgba(255,255,255,.88);
+            animation: carregandoJadlog 1.35s ease-in-out infinite;
+        }}
+        @keyframes carregandoJadlog {{
+            0% {{ width: 10%; transform: translateX(-100%); opacity: .65; }}
+            45% {{ width: 48%; opacity: 1; }}
+            100% {{ width: 28%; transform: translateX(330%); opacity: .75; }}
+        }}
+        .splash-loading-text {{
+            margin-top: 18px;
+            font-size: .88rem;
+            letter-spacing: .10em;
+            color: rgba(255,255,255,.94);
+        }}
+
     </style>
 </head>
 <body>
+
+    <div id="appSplash" aria-hidden="true">
+        <div class="splash-content">
+            <div class="splash-logo-stage">
+                <span class="splash-ring ring-1"></span>
+                <span class="splash-ring ring-2"></span>
+                <span class="splash-ring ring-3"></span>
+                <div class="splash-logo-card">
+                    <img src="/static/icons/launchericon-512x512.png" alt="JADLOG BRÁS">
+                </div>
+            </div>
+            <h1 class="splash-title">JADLOG BRÁS</h1>
+            <div class="splash-subtitle">SIMULADOR DE FRETES</div>
+            <div class="splash-loader">
+                <div class="splash-loader-track"><div class="splash-loader-progress"></div></div>
+                <div class="splash-loading-text">CARREGANDO...</div>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar navbar-expand-lg bg-jadlog">
         <div class="container">
             <a class="navbar-brand" href="/">
@@ -139,6 +273,37 @@ async def home_page(request: Request):
             const area = document.getElementById('installAppArea');
             if (area) area.style.display = 'none';
         }}
+
+
+
+        function iniciarSplashPWA() {{
+            if (!estaEmModoApp()) {{
+                return;
+            }}
+
+            if (sessionStorage.getItem('jadlogSplashShown') === '1') {{
+                return;
+            }}
+
+            const splash = document.getElementById('appSplash');
+            if (!splash) {{
+                return;
+            }}
+
+            sessionStorage.setItem('jadlogSplashShown', '1');
+            splash.classList.add('splash-visible');
+            splash.setAttribute('aria-hidden', 'false');
+
+            window.setTimeout(function() {{
+                splash.classList.add('splash-hide');
+                window.setTimeout(function() {{
+                    splash.classList.remove('splash-visible');
+                    splash.setAttribute('aria-hidden', 'true');
+                }}, 450);
+            }}, 1850);
+        }}
+
+        iniciarSplashPWA();
 
         if ('serviceWorker' in navigator) {{
             window.addEventListener('load', function() {{
