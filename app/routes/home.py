@@ -1,4 +1,4 @@
-# app/routes/home.py
+﻿# app/routes/home.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from app.services.sessao import sessoes
@@ -37,6 +37,9 @@ async def home_page(request: Request):
         .logo-img {{ height: 55px; background: white; padding: 5px 15px; border-radius: 60px; }}
         .nav-link.login-btn {{ background: white; color: #E31E24 !important; padding: 5px 20px; border-radius: 20px; font-weight: 600; }}
         .nav-link.login-btn:hover {{ background: #f0f0f0; }}
+        .install-app-area {{ display: none; margin-top: 24px; }}
+        .btn-install-app {{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #212529; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.16); }}
+        .btn-install-app:hover {{ background: #000; color: white; }}
     </style>
 </head>
 <body>
@@ -108,6 +111,13 @@ async def home_page(request: Request):
                         </div>
                     </div>
                 </div>
+
+                <div id="installAppArea" class="install-app-area text-center">
+                    <button id="installAppButton" type="button" class="btn-install-app">
+                        <i class="bi bi-phone"></i> Instalar aplicativo
+                    </button>
+                    <div class="text-muted small mt-2">Instale o JADLOG BRÁS como aplicativo no dispositivo.</div>
+                </div>
             </div>
         </div>
     </main>
@@ -118,14 +128,61 @@ async def home_page(request: Request):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let deferredInstallPrompt = null;
+
+        function estaEmModoApp() {{
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true;
+        }}
+
+        function ocultarBotaoInstalacao() {{
+            const area = document.getElementById('installAppArea');
+            if (area) area.style.display = 'none';
+        }}
+
         if ('serviceWorker' in navigator) {{
-            navigator.serviceWorker.register('/sw.js')
-                .then(function(reg) {{
-                    console.log('Service Worker registrado com sucesso!');
-                }})
-                .catch(function(err) {{
-                    console.log('Erro ao registrar Service Worker:', err);
-                }});
+            window.addEventListener('load', function() {{
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(reg) {{
+                        console.log('Service Worker registrado com sucesso!', reg.scope);
+                    }})
+                    .catch(function(err) {{
+                        console.log('Erro ao registrar Service Worker:', err);
+                    }});
+            }});
+        }}
+
+        window.addEventListener('beforeinstallprompt', function(event) {{
+            event.preventDefault();
+            deferredInstallPrompt = event;
+
+            if (!estaEmModoApp()) {{
+                const area = document.getElementById('installAppArea');
+                if (area) area.style.display = 'block';
+            }}
+        }});
+
+        document.getElementById('installAppButton').addEventListener('click', async function() {{
+            if (!deferredInstallPrompt) {{
+                return;
+            }}
+
+            deferredInstallPrompt.prompt();
+            const resultado = await deferredInstallPrompt.userChoice;
+            console.log('Resultado da instalação:', resultado.outcome);
+
+            deferredInstallPrompt = null;
+            ocultarBotaoInstalacao();
+        }});
+
+        window.addEventListener('appinstalled', function() {{
+            deferredInstallPrompt = null;
+            ocultarBotaoInstalacao();
+            console.log('JADLOG BRÁS instalado como PWA.');
+        }});
+
+        if (estaEmModoApp()) {{
+            ocultarBotaoInstalacao();
         }}
     </script>
 </body>
