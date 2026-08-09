@@ -494,11 +494,19 @@ async def simulador_page(request: Request):
                 ['Origem', 'Bras - SP'],
                 ['Destino', cidade + '/' + uf],
                 ['Prazo', prazo + ' dias'],
-                ['Modalidade', modalidade],
-                ['Tipo', tipoTarifa],
-                ['Peso', (data.peso || 10) + ' kg'],
-                ['Valor do Frete', 'R$ ' + valorFrete.toFixed(2)],
+                ['Modalidade', modalidade]
             ];
+
+            // Informações internas: visíveis somente para usuário autenticado
+            if (USUARIO_LOGADO) {{
+                itens.push(['Tipo da Tabela', tipoTarifa]);
+            }}
+
+            itens.push(['Peso', (data.peso || 10) + ' kg']);
+
+            if (USUARIO_LOGADO) {{
+                itens.push(['Valor do Frete', 'R$ ' + valorFrete.toFixed(2)]);
+            }}
             
             itens.forEach(item => {{
                 const classe = item[0] === 'Valor do Frete' ? 'valor-frete' : 
@@ -632,9 +640,9 @@ async def simulador_page(request: Request):
                 <div class="linha"><span class="label">Destino</span><span class="valor">${{cidade}}/${{uf}}</span></div>
                 <div class="linha"><span class="label">Prazo</span><span class="valor">${{prazo}} dias</span></div>
                 <div class="linha"><span class="label">Modalidade</span><span class="valor">${{modalidade}}</span></div>
-                <div class="linha"><span class="label">Tipo</span><span class="valor">${{tipoTarifa}}</span></div>
+                ${{USUARIO_LOGADO ? `<div class="linha"><span class="label">Tipo da Tabela</span><span class="valor">${{tipoTarifa}}</span></div>` : ''}}
                 <div class="linha"><span class="label">Peso</span><span class="valor">${{data.peso || 10}} kg</span></div>
-                <div class="linha"><span class="label">Valor do Frete</span><span class="valor">R$ ${{valorFrete.toFixed(2)}}</span></div>
+                ${{USUARIO_LOGADO ? `<div class="linha"><span class="label">Valor do Frete</span><span class="valor">R$ ${{valorFrete.toFixed(2)}}</span></div>` : ''}}
                 <div class="linha"><span class="label">Seguro</span><span class="valor">R$ ${{seguro.toFixed(2)}}</span></div>
                 <div class="total">Frete Total: R$ ${{freteTotal.toFixed(2)}}</div>
                 <div class="obs">VALORES EXCLUSIVOS DA UNIDADE DA AV. VAUTIER, 455 (BRÁS)<br><strong>Válidos até Dezembro de 2026</strong></div>
