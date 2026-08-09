@@ -1,110 +1,96 @@
-﻿import pandas as pd
+# app/services/cep_service.py
+from __future__ import annotations
+
 import bisect
 import re
-from typing import Optional, Dict, Tuple
+from typing import Optional
+
+import pandas as pd
+
 
 class CEPService:
+    """Consulta a CIDATEN por intervalo de CEP."""
+
     def __init__(self, arquivo_cidaten: str = "Cidaten_2026.xlsx"):
         self.arquivo = arquivo_cidaten
-        self.dados = []  # (inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro)
+        # inicio, fim, uf, localidade, tipo, prazo, frap_fob, seguro
+        self.dados = []
         self.inicios = []
         self._carregar()
 
-    def _parse_intervalo(self, cep_str: str) -> Tuple[int, int]:
-        """Converte string de CEP para (inicio, fim) como inteiros."""
-        cep_str = cep_str.strip()
-        if ' a ' in cep_str:
-            partes = cep_str.split(' a ')
-            inicio = int(partes[0].strip())
-            fim = int(partes[1].strip())
+    @staticmethod
+    def _normalizar_cep(cep) -> Optional[int]:
+        texto = re.sub(r"\D", "", str(cep or ""))
+        if len(texto) != 8:
+            return None
+        return int(texto)
+
+    @staticmethod
+    def _parse_intervalo(valor) -> tuple[int, int]:
+        texto = str(valor).strip()
+        numeros = re.findall(r"\d+", texto)
+        if not numeros:
+            raise ValueError(f"Intervalo de CEP inválido: {valor!r}")
+        if len(numeros) == 1:
+            inicio = fim = int(numeros[0])
         else:
-            # Caso único
-            inicio = int(cep_str)
-            fim = inicio
+            inicio, fim = int(numeros[0]), int(numeros[1])
         return inicio, fim
 
     def _carregar(self):
         try:
             df = pd.read_excel(self.arquivo, sheet_name="Cidaten", header=1)
-        except Exception as e:
-            raise RuntimeError(f"Erro ao carregar CIDATEN: {e}")
+        except Exception as exc:
+            raise RuntimeError(f"Erro ao carregar CIDATEN: {exc}") from exc
 
-        # Mapeamento de colunas - ajuste se necessário
-        # As colunas são: UF, Localidade, Cep, Prazo Rodo, Tipo Tarifa, Frap (Fob), % Seguro
-        # Vamos usar índices ou nomes exatos
-        # A planilha tem cabeçalho: UF | Localidade | Cep | Prazo Rodo | Tipo Tarifa | Frap (Fob) | % Seguro
-        # Portanto, vamos acessar por posição ou nome
+        obrigatorias = {
+            "UF", "Localidade", "Cep", "Prazo Rodo",
+            "Tipo Tarifa", "Frap (Fob)", "% Seguro",
+        }
+        faltantes = obrigatorias.difference(df.columns)
+        if faltantes:
+            raise RuntimeError(f"CIDATEN sem colunas obrigatórias: {sorted(faltantes)}")
 
-        # Para garantir, vamos usar os nomes das colunas conforme aparecem
-        col_uf = 'UF'
-        col_localidade = 'Localidade'
-        col_cep = 'Cep'
-        col_prazo = 'Prazo Rodo'
-        col_tipo = 'Tipo Tarifa'
-        col_seguro = '% Seguro'
+        registros = []
+        for _, row in df.iterrows():
+            if pd.isna(row["Cep"]):
+                continue
 
-        for idx, row in df.iterrows():
-            uf = str(row[col_uf]).strip()
-            localidade = str(row[col_localidade]).strip()
-            cep_str = str(row[col_cep]).strip()
-            prazo = int(row[col_prazo]) if pd.notna(row[col_prazo]) else 0
-            tipo = str(row[col_tipo]).strip()
-            seguro = float(row[col_seguro]) if pd.notna(row[col_seguro]) else 0.0066
+            inicio, fim = self._parse_intervalo(row["Cep"])
+            uf = str(row["UF"]).strip().upper()
+            cidade = str(row["Localidade"]).strip()
+            tipo = " ".join(str(row["Tipo Tarifa"]).strip().split())
+            prazo = int(row["Prazo Rodo"]) if pd.notna(row["Prazo Rodo"]) else 0
+            frap = str(row["Frap (Fob)"]).strip() if pd.notna(row["Frap (Fob)"]) else ""
+            seguro = float(row["% Seguro"]) if pd.notna(row["% Seguro"]) else 0.0
 
-            inicio, fim = self._parse_intervalo(cep_str)
-            self.dados.append((inicio, fim, uf, localidade, tipo, prazo, seguro))
+            registros.append((inicio, fim, uf, cidade, tipo, prazo, frap, seguro))
 
-        # Ordenar por início
-        self.dados.sort(key=lambda x: x[0])
-        self.inicios = [item[0] for item in self.dados]  # lista de inteiros
+        registros.sort(key=lambda x: x[0])
+        self.dados = registros
+        self.inicios = [r[0] for r in registros]
 
     def buscar(self, cep):
-        """
-        Busca informações do CEP.
-        cep pode ser string (com ou sem hífen) ou inteiro.
-        Retorna dicionário ou None.
-        """
-        # Normalizar CEP para inteiro
-        if isinstance(cep, str):
-            cep_clean = re.sub(r'\D', '', cep)  # remove tudo que não é dígito
-            try:
-                cep_int = int(cep_clean)
-            except ValueError:
-                return None
-        else:
-            cep_int = int(cep)
+        cep_int = self._normalizar_cep(cep)
+        if cep_int is None:
+            return None
 
-        # Busca binária
         pos = bisect.bisect_right(self.inicios, cep_int) - 1
         if pos < 0:
             return None
 
-        inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro = self.dados[pos]
-        if cep_int < inicio or cep_int > fim:
-            # Verifica próximo
-            if pos + 1 < len(self.dados):
-                inicio2, fim2, uf2, localidade2, tipo_tarifa2, prazo2, seguro2 = self.dados[pos+1]
-                if inicio2 <= cep_int <= fim2:
-                    inicio, fim, uf, localidade, tipo_tarifa, prazo, seguro = self.dados[pos+1]
-                else:
-                    return None
-            else:
-                return None
-
-        # Extrair regiao_interior se for Interior
-        regiao_interior = None
-        if "Interior" in tipo_tarifa:
-            match = re.search(r'\d+', tipo_tarifa)
-            if match:
-                regiao_interior = f"INT{match.group()}"
-            else:
-                regiao_interior = "INT1"
+        inicio, fim, uf, cidade, tipo, prazo, frap, seguro = self.dados[pos]
+        if not (inicio <= cep_int <= fim):
+            return None
 
         return {
+            "cep": f"{cep_int:08d}",
+            "cep_inicio": f"{inicio:08d}",
+            "cep_fim": f"{fim:08d}",
             "uf": uf,
-            "cidade": localidade,
-            "tipo_tarifa": tipo_tarifa,
-            "regiao_interior": regiao_interior,
+            "cidade": cidade,
+            "tipo_tarifa": tipo,
             "prazo": prazo,
+            "frap_fob": frap,
             "seguro_percentual": seguro,
         }

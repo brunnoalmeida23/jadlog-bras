@@ -245,21 +245,18 @@ async def simulador_page(request: Request):
                         <!-- CEP -->
                         <div class="mb-3">
                             <label class="form-label">CEP de Destino</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Ex: 01000-000" id="cepDestino">
-                            <small class="text-muted" style="font-size: 0.7rem;">Ex: 01000-000 (SP Capital) ou 69945-000 (Interior)</small>
+                            <input type="text" class="form-control form-control-sm" placeholder="Digite o CEP de destino" id="cepDestino">
                         </div>
                         
                         <!-- Peso e Valor NF -->
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="form-label">Peso (kg)</label>
-                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 2.350" id="peso" step="0.001">
-                                <small class="text-muted" style="font-size: 0.7rem;">Ex: 2.350</small>
+                                <input type="number" class="form-control form-control-sm" placeholder="Digite o peso desejado" id="peso" step="0.001">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Valor NF (R$)</label>
-                                <input type="number" class="form-control form-control-sm" placeholder="Ex: 5000.00" id="valorNF" step="0.01">
-                                <small class="text-muted" style="font-size: 0.7rem;">Seguro: 0,66% se NF > R$ 100</small>
+                                <input type="number" class="form-control form-control-sm" placeholder="Digite o valor da nota fiscal" id="valorNF" step="0.01">
                             </div>
                         </div>
                         
@@ -501,7 +498,6 @@ async def simulador_page(request: Request):
                 ['Tipo', tipoTarifa],
                 ['Peso', (data.peso || 10) + ' kg'],
                 ['Valor do Frete', 'R$ ' + valorFrete.toFixed(2)],
-                ['Seguro', 'R$ ' + seguro.toFixed(2)]
             ];
             
             itens.forEach(item => {{

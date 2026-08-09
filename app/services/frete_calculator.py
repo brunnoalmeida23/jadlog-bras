@@ -1,454 +1,273 @@
-﻿# app/services/frete_calculator.py
+# app/services/frete_calculator.py
+from __future__ import annotations
+
+import math
+from decimal import Decimal, ROUND_HALF_UP
+
 from .cep_service import CEPService
+from .tarifas_capital_v32 import (
+    GLM_CAPITAL_PONTOS,
+    LUCRO_FAIXAS,
+    PRECO_PROMOCIONAL_CAPITAL,
+)
+from .tarifas_glm_v32 import PESOS_TABELA, TABELAS_GLM
+
+
+CENTAVOS = Decimal("0.01")
+VERSAO_MOTOR = "3.2"
+
+
+def _d(valor) -> Decimal:
+    return Decimal(str(valor))
+
+
+def _moeda(valor) -> float:
+    return float(_d(valor).quantize(CENTAVOS, rounding=ROUND_HALF_UP))
+
 
 class FreteCalculator:
+    """
+    Motor V3.2 - Jadlog Brás.
+
+    Entradas:
+      CEP de destino, peso, valor da NF e modalidade.
+
+    Fluxo:
+      CEP -> CIDATEN -> classificação/UF/prazo/% seguro
+      -> tabela aplicável -> GLM do peso
+      -> lucro da faixa -> ad valorem -> total.
+
+    Observação:
+      Os detalhes de composição retornados servem para auditoria do backend.
+      A interface do cliente final não deve exibi-los.
+    """
+
+    TIPOS_GLM = {
+        "Capital 1", "Capital 2", "Capital 3",
+        "Interior 1", "Interior 2", "Interior 3",
+    }
+    FAIXAS_LUCRO = (1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+
     def __init__(self):
         self.cep_service = CEPService()
-        self.glm_fixo = self._carregar_glm_fixo()
-        self.glm_capital = self._carregar_glm_capital()
-        self.glm_interior_com = self._carregar_glm_interior_com()
-        self.glm_interior_pack = self._carregar_glm_interior_pack()
-        self.lucro = self._carregar_lucro()
 
-    def _carregar_glm_fixo(self):
-        """GLM fixo para CAPITAL com peso ≤ 30kg (usado apenas para Capital)"""
-        return {1: 24.99, 5: 49.99, 10: 79.99, 20: 149.99, 30: 229.99}
+    @staticmethod
+    def _normalizar_modalidade(modalidade: str) -> str:
+        mod = (modalidade or "").strip().upper()
+        if mod in {"PACKAGE", "PACK", ".PACKAGE"}:
+            return "PACKAGE"
+        if mod in {".COM", "COM"}:
+            return ".COM"
+        raise ValueError("Modalidade inválida.")
 
-    def _carregar_glm_capital(self):
-        """GLM para CAPITAL ≥40kg (planilha SP CAPITAL) - ATUALIZADO com valores do painel"""
-        return {
-            "AC": {40: 256.02, 50: 303.53, 60: 351.03, 70: 398.55, 80: 446.05, 90: 493.56, 100: 541.06},
-            "AL": {40: 178.31, 50: 206.16, 60: 234.02, 70: 261.87, 80: 289.72, 90: 317.58, 100: 345.43},
-            "AP": {40: 255.66, 50: 303.16, 60: 350.67, 70: 398.18, 80: 445.69, 90: 493.19, 100: 540.70},
-            "AM": {40: 256.02, 50: 303.53, 60: 351.03, 70: 398.55, 80: 446.05, 90: 493.56, 100: 541.06},
-            "BA": {40: 172.89, 50: 195.69, 60: 218.49, 70: 241.29, 80: 264.09, 90: 286.89, 100: 309.69},
-            "CE": {40: 282.51, 50: 327.32, 60: 372.13, 70: 416.95, 80: 461.75, 90: 506.57, 100: 551.38},
-            "DF": {40: 141.62, 50: 160.72, 60: 179.82, 70: 198.90, 80: 218.00, 90: 237.09, 100: 256.18},
-            "ES": {40: 141.62, 50: 160.72, 60: 179.82, 70: 198.90, 80: 218.00, 90: 237.09, 100: 256.18},
-            "GO": {40: 141.62, 50: 160.72, 60: 179.82, 70: 198.90, 80: 218.00, 90: 237.09, 100: 256.18},
-            "MA": {40: 185.57, 50: 215.56, 60: 245.55, 70: 275.54, 80: 305.52, 90: 335.51, 100: 365.49},
-            "MT": {40: 189.05, 50: 219.83, 60: 250.59, 70: 281.37, 80: 312.14, 90: 342.91, 100: 373.69},
-            "MS": {40: 156.89, 50: 181.83, 60: 206.76, 70: 231.69, 80: 256.62, 90: 281.56, 100: 306.49},
-            "MG": {40: 122.57, 50: 135.50, 60: 148.44, 70: 161.38, 80: 174.32, 90: 187.25, 100: 200.19},
-            "PA": {40: 185.57, 50: 215.56, 60: 245.55, 70: 275.54, 80: 305.52, 90: 335.51, 100: 365.49},
-            "PB": {40: 236.71, 50: 279.49, 60: 322.29, 70: 365.08, 80: 407.87, 90: 450.66, 100: 493.45},
-            "PR": {40: 121.05, 50: 133.98, 60: 146.92, 70: 159.85, 80: 172.80, 90: 185.73, 100: 198.67},
-            "PE": {40: 208.57, 50: 243.72, 60: 278.87, 70: 314.02, 80: 349.18, 90: 384.33, 100: 419.48},
-            "PI": {40: 185.94, 50: 215.92, 60: 245.91, 70: 275.90, 80: 305.88, 90: 335.87, 100: 365.86},
-            "RJ": {40: 121.05, 50: 133.98, 60: 146.92, 70: 159.85, 80: 172.80, 90: 185.73, 100: 198.67},
-            "RN": {40: 255.66, 50: 303.16, 60: 350.67, 70: 398.18, 80: 445.69, 90: 493.19, 100: 540.70},
-            "RS": {40: 149.67, 50: 169.85, 60: 190.03, 70: 210.20, 80: 230.39, 90: 250.56, 100: 270.74},
-            "RO": {40: 284.84, 50: 337.28, 60: 389.73, 70: 442.18, 80: 494.63, 90: 547.08, 100: 599.53},
-            "RR": {40: 255.66, 50: 303.16, 60: 350.67, 70: 398.18, 80: 445.69, 90: 493.19, 100: 540.70},
-            "SC": {40: 121.05, 50: 133.98, 60: 146.92, 70: 159.85, 80: 172.80, 90: 185.73, 100: 198.67},
-            # ATUALIZADO: SP com valores do painel
-            "SP": {40: 110.41, 50: 115.98, 60: 126.78, 70: 137.58, 80: 148.39, 90: 159.18, 100: 169.99},
-            "SE": {40: 177.95, 50: 205.80, 60: 233.66, 70: 261.51, 80: 289.35, 90: 317.22, 100: 345.06},
-            "TO": {40: 185.57, 50: 215.56, 60: 245.55, 70: 275.54, 80: 305.52, 90: 335.51, 100: 365.49}
-        }
+    @staticmethod
+    def _normalizar_tipo(tipo: str) -> str:
+        return " ".join((tipo or "").strip().split())
 
-    def _carregar_glm_interior_com(self):
-        """GLM para INTERIOR - modalidade .COM"""
-        # Dados base por UF e região (1,5,10,20,30, adicional)
-        dados = {
-            "AC": {
-                "INT1": (93.80, 138.49, 213.08, 575.87, 983.09, 38.63),
-                "INT2": (115.20, 170.18, 261.88, 736.66, 1306.98, 51.39),
-                "INT3": (174.97, 258.79, 398.54, 1121.42, 1989.11, 78.25),
-            },
-            "AL": {
-                "INT1": (78.72, 117.54, 180.43, 483.20, 824.73, 32.17),
-                "INT2": (86.31, 128.90, 197.82, 544.07, 1012.14, 42.80),
-                "INT3": (130.86, 195.81, 300.85, 828.03, 1540.24, 65.16),
-            },
-            "AM": {
-                "INT1": (79.16, 118.64, 182.11, 491.74, 839.33, 32.98),
-                "INT2": (97.16, 145.71, 223.76, 628.98, 1115.76, 43.87),
-                "INT3": (147.43, 221.48, 340.39, 957.37, 1697.98, 66.80),
-            },
-            "AP": {
-                "INT1": (79.16, 118.64, 182.11, 491.74, 839.33, 32.98),
-                "INT2": (97.16, 145.71, 223.76, 628.98, 1115.76, 43.87),
-                "INT3": (147.43, 221.48, 340.39, 957.37, 1697.98, 66.80),
-            },
-            "BA": {
-                "INT1": (35.79, 66.05, 113.55, 303.24, 517.17, 20.16),
-                "INT2": (43.72, 80.95, 139.36, 387.68, 687.33, 26.82),
-                "INT3": (65.89, 122.66, 211.71, 589.79, 1045.68, 40.83),
-            },
-            "CE": {
-                "INT1": (58.02, 91.83, 145.07, 387.90, 661.74, 25.80),
-                "INT2": (71.09, 112.70, 178.16, 496.03, 879.61, 34.32),
-                "INT3": (107.67, 171.13, 270.87, 754.85, 1338.46, 52.25),
-            },
-            "DF": {
-                "INT1": (27.36, 52.77, 91.99, 244.20, 417.52, 16.12),
-                "INT2": (33.38, 64.75, 113.08, 312.74, 555.81, 21.50),
-                "INT3": (50.15, 98.06, 171.81, 476.20, 846.42, 32.77),
-            },
-            "ES": {
-                "INT1": (27.36, 52.77, 91.99, 244.20, 417.52, 16.12),
-                "INT2": (36.02, 70.01, 122.36, 312.74, 513.17, 19.85),
-                "INT3": (43.68, 85.20, 149.13, 381.28, 625.44, 24.21),
-            },
-            "GO": {
-                "INT1": (27.36, 52.77, 91.99, 244.20, 417.52, 16.12),
-                "INT2": (33.38, 64.75, 113.08, 312.74, 555.81, 21.50),
-                "INT3": (50.15, 98.06, 171.81, 476.20, 846.42, 32.77),
-            },
-            "MA": {
-                "INT1": (79.16, 118.64, 182.11, 491.74, 839.33, 32.98),
-                "INT2": (86.79, 130.10, 199.68, 553.69, 1030.04, 43.87),
-                "INT3": (131.62, 197.66, 303.68, 842.68, 1567.50, 66.80),
-            },
-            "MG": {
-                "INT1": (25.95, 50.06, 87.30, 232.26, 398.01, 15.39),
-                "INT2": (34.13, 66.38, 116.08, 297.42, 489.16, 18.91),
-                "INT3": (41.37, 80.77, 141.47, 362.60, 596.18, 23.07),
-            },
-            "MS": {
-                "INT1": (27.66, 53.77, 93.72, 252.98, 432.56, 16.97),
-                "INT2": (33.76, 65.96, 115.21, 323.99, 575.81, 22.62),
-                "INT3": (50.72, 99.91, 175.05, 493.35, 876.91, 34.46),
-            },
-            "MT": {
-                "INT1": (33.00, 61.03, 105.02, 284.12, 486.04, 19.08),
-                "INT2": (40.36, 74.94, 129.14, 363.91, 647.08, 25.43),
-                "INT3": (60.81, 113.62, 196.38, 554.24, 985.54, 38.75),
-            },
-            "PA": {
-                "INT1": (58.35, 92.69, 146.42, 394.76, 673.46, 26.45),
-                "INT2": (71.50, 113.76, 179.83, 504.81, 895.17, 35.18),
-                "INT3": (108.30, 172.72, 273.41, 768.21, 1362.16, 53.57),
-            },
-            "PB": {
-                "INT1": (78.72, 117.54, 180.43, 483.20, 824.73, 32.17),
-                "INT2": (86.31, 128.90, 197.82, 544.07, 1012.14, 42.80),
-                "INT3": (130.86, 195.81, 300.85, 828.03, 1540.24, 65.16),
-            },
-            "PE": {
-                "INT1": (58.02, 91.83, 145.07, 387.90, 661.74, 25.80),
-                "INT2": (71.09, 112.70, 178.16, 496.03, 879.61, 34.32),
-                "INT3": (107.67, 171.13, 270.87, 754.85, 1338.46, 52.25),
-            },
-            "PI": {
-                "INT1": (79.16, 118.64, 182.11, 491.74, 839.33, 32.98),
-                "INT2": (86.79, 130.10, 199.68, 553.69, 1030.04, 43.87),
-                "INT3": (131.62, 197.66, 303.68, 842.68, 1567.50, 66.80),
-            },
-            "PR": {
-                "INT1": (25.88, 49.83, 86.89, 230.17, 394.42, 15.18),
-                "INT2": (34.05, 66.06, 115.54, 294.75, 484.75, 18.67),
-                "INT3": (41.26, 80.38, 140.80, 359.33, 590.81, 22.78),
-            },
-            "RJ": {
-                "INT1": (25.95, 50.06, 87.30, 232.26, 398.01, 15.39),
-                "INT2": (34.13, 66.38, 116.08, 297.42, 489.16, 18.91),
-                "INT3": (41.37, 80.77, 141.47, 362.60, 596.18, 23.07),
-            },
-            "RN": {
-                "INT1": (78.72, 117.54, 180.43, 483.20, 824.73, 32.17),
-                "INT2": (86.31, 128.90, 197.82, 544.07, 1012.14, 42.80),
-                "INT3": (130.86, 195.81, 300.85, 828.03, 1540.24, 65.16),
-            },
-            "RO": {
-                "INT1": (79.16, 118.64, 182.11, 491.74, 839.33, 32.98),
-                "INT2": (97.16, 145.71, 223.76, 628.98, 1115.76, 43.87),
-                "INT3": (147.43, 221.48, 340.39, 957.37, 1697.98, 66.80),
-            },
-            "RR": {
-                "INT1": (93.80, 138.49, 213.08, 575.87, 983.09, 38.63),
-                "INT2": (115.20, 170.18, 261.88, 736.66, 1306.98, 51.39),
-                "INT3": (174.97, 258.79, 398.54, 1121.42, 1989.11, 78.25),
-            },
-            "RS": {
-                "INT1": (25.88, 49.83, 86.89, 230.17, 394.42, 15.18),
-                "INT2": (34.05, 66.06, 115.54, 294.75, 484.75, 18.67),
-                "INT3": (41.26, 80.38, 140.80, 359.33, 590.81, 22.78),
-            },
-            "SC": {
-                "INT1": (25.88, 49.83, 86.89, 230.17, 394.42, 15.18),
-                "INT2": (34.05, 66.06, 115.54, 294.75, 484.75, 18.67),
-                "INT3": (41.26, 80.38, 140.80, 359.33, 590.81, 22.78),
-            },
-            "SE": {
-                "INT1": (78.72, 117.54, 180.43, 483.20, 824.73, 32.17),
-                "INT2": (86.31, 128.90, 197.82, 544.07, 1012.14, 42.80),
-                "INT3": (130.86, 195.81, 300.85, 828.03, 1540.24, 65.16),
-            },
-            "SP": {
-                "INT1": (17.63, 26.61, 34.11, 89.15, 152.59, 6.96),
-                "INT2": (23.02, 35.01, 45.04, 113.88, 187.30, 7.73),
-                "INT3": (27.77, 42.40, 54.66, 138.61, 228.06, 8.76),
-            },
-            "TO": {
-                "INT1": (58.35, 92.69, 146.42, 394.76, 673.46, 26.45),
-                "INT2": (71.50, 113.76, 179.83, 504.81, 895.17, 35.18),
-                "INT3": (108.30, 172.72, 273.41, 768.21, 1362.16, 53.57),
-            },
-        }
-        # Converter tuplas em dicionários completos para todos os pesos
-        resultado = {}
-        for uf, regioes in dados.items():
-            resultado[uf] = {}
-            for regiao, (v1, v5, v10, v20, v30, adicional) in regioes.items():
-                resultado[uf][regiao] = {
-                    1: v1,
-                    5: v5,
-                    10: v10,
-                    20: v20,
-                    30: v30,
-                    40: v30 + 10 * adicional,
-                    50: v30 + 20 * adicional,
-                    60: v30 + 30 * adicional,
-                    70: v30 + 40 * adicional,
-                    80: v30 + 50 * adicional,
-                    90: v30 + 60 * adicional,
-                    100: v30 + 70 * adicional,
-                }
-        return resultado
+    @classmethod
+    def _faixa_lucro(cls, peso: float) -> int:
+        for faixa in cls.FAIXAS_LUCRO:
+            if peso <= faixa:
+                return faixa
+        raise ValueError("Peso acima de 100 kg: cotação automática não homologada.")
 
-    def _carregar_glm_interior_pack(self):
-        """GLM para INTERIOR - modalidade PACKAGE"""
-        dados = {
-            "AC": {
-                "INT1": (90.78, 130.12, 201.06, 506.29, 858.49, 29.57),
-                # ATUALIZADO: AC Interior 2 com valor do painel para 40kg
-                "INT2": (111.80, 160.23, 247.44, 648.10, 1141.90, 64.024),  # Ajustado para que 40kg = 1782.14
-                "INT3": (170.67, 244.52, 377.47, 987.54, 1738.86, 59.89),
-            },
-            "AL": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "AM": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (94.02, 136.95, 211.16, 553.08, 974.54, 33.58),
-                "INT3": (143.54, 209.02, 322.13, 842.80, 1484.08, 51.13),
-            },
-            "AP": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (94.02, 136.95, 211.16, 553.08, 974.54, 33.58),
-                "INT3": (143.54, 209.02, 322.13, 842.80, 1484.08, 51.13),
-            },
-            "BA": {
-                "INT1": (33.81, 61.78, 107.35, 270.47, 458.75, 15.82),
-                "INT2": (41.62, 76.04, 132.10, 346.24, 610.24, 21.04),
-                "INT3": (63.55, 116.07, 201.55, 527.68, 929.40, 32.03),
-            },
-            "CE": {
-                "INT1": (55.84, 86.55, 137.62, 346.48, 587.53, 20.24),
-                "INT2": (68.76, 106.55, 169.36, 443.54, 781.51, 26.92),
-                "INT3": (104.97, 162.61, 258.38, 675.90, 1190.17, 40.99),
-            },
-            "DF": {
-                "INT1": (25.76, 49.65, 87.63, 221.57, 376.85, 12.98),
-                "INT2": (31.71, 61.21, 108.02, 284.16, 502.18, 17.30),
-                "INT3": (48.40, 93.48, 164.95, 433.56, 765.65, 26.38),
-            },
-            "ES": {
-                "INT1": (25.76, 49.65, 87.63, 221.57, 376.85, 12.98),
-                "INT2": (34.35, 66.31, 117.03, 284.16, 463.51, 15.97),
-                "INT3": (41.95, 81.02, 142.95, 346.79, 565.30, 19.47),
-            },
-            "GO": {
-                "INT1": (25.76, 49.65, 87.63, 221.57, 376.85, 12.98),
-                "INT2": (31.71, 61.21, 108.02, 284.16, 502.18, 17.30),
-                "INT3": (48.40, 93.48, 164.95, 433.56, 765.65, 26.38),
-            },
-            "MA": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "MG": {
-                "INT1": (24.35, 47.03, 83.08, 210.66, 359.16, 12.38),
-                "INT2": (32.47, 62.80, 110.95, 270.18, 441.76, 15.22),
-                "INT3": (39.64, 76.72, 135.52, 329.72, 538.75, 18.57),
-            },
-            "MS": {
-                "INT1": (25.76, 49.65, 87.63, 221.57, 376.85, 12.98),
-                "INT2": (31.71, 61.21, 108.02, 284.16, 502.18, 17.30),
-                "INT3": (48.40, 93.48, 164.95, 433.56, 765.65, 26.38),
-            },
-            "MT": {
-                "INT1": (31.01, 56.58, 98.39, 249.03, 423.66, 14.60),
-                "INT2": (38.22, 69.75, 121.30, 319.38, 564.54, 19.46),
-                "INT3": (58.34, 106.54, 185.24, 487.29, 860.74, 29.67),
-            },
-            "PA": {
-                "INT1": (55.84, 86.55, 137.62, 346.48, 587.53, 20.24),
-                "INT2": (68.76, 106.55, 169.36, 443.54, 781.51, 26.92),
-                "INT3": (104.97, 162.61, 258.38, 675.90, 1190.17, 40.99),
-            },
-            "PB": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "PE": {
-                "INT1": (55.84, 86.55, 137.62, 346.48, 587.53, 20.24),
-                "INT2": (68.76, 106.55, 169.36, 443.54, 781.51, 26.92),
-                "INT3": (104.97, 162.61, 258.38, 675.90, 1190.17, 40.99),
-            },
-            "PI": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "PR": {
-                "INT1": (24.35, 47.03, 83.08, 210.66, 359.16, 12.38),
-                "INT2": (32.47, 62.80, 110.95, 270.18, 441.76, 15.22),
-                "INT3": (39.64, 76.72, 135.52, 329.72, 538.75, 18.57),
-            },
-            "RJ": {
-                "INT1": (24.35, 47.03, 83.08, 210.66, 359.16, 12.38),
-                "INT2": (32.47, 62.80, 110.95, 270.18, 441.76, 15.22),
-                "INT3": (39.64, 76.72, 135.52, 329.72, 538.75, 18.57),
-            },
-            "RN": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "RO": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (94.02, 136.95, 211.16, 553.08, 974.54, 33.58),
-                "INT3": (143.54, 209.02, 322.13, 842.80, 1484.08, 51.13),
-            },
-            "RR": {
-                "INT1": (90.78, 130.12, 201.06, 506.29, 858.49, 29.57),
-                "INT2": (111.80, 160.23, 247.44, 648.10, 1141.90, 39.33),
-                "INT3": (170.67, 244.52, 377.47, 987.54, 1738.86, 59.89),
-            },
-            "RS": {
-                "INT1": (24.35, 47.03, 83.08, 210.66, 359.16, 12.38),
-                "INT2": (32.47, 62.80, 110.95, 270.18, 441.76, 15.22),
-                "INT3": (39.64, 76.72, 135.52, 329.72, 538.75, 18.57),
-            },
-            "SC": {
-                "INT1": (24.35, 47.03, 83.08, 210.66, 359.16, 12.38),
-                "INT2": (32.47, 62.80, 110.95, 270.18, 441.76, 15.22),
-                "INT3": (39.64, 76.72, 135.52, 329.72, 538.75, 18.57),
-            },
-            "SE": {
-                "INT1": (76.35, 111.22, 171.58, 432.07, 732.68, 25.24),
-                "INT2": (82.26, 119.81, 184.73, 486.66, 899.55, 33.58),
-                "INT3": (125.57, 182.84, 281.82, 741.61, 1369.88, 51.13),
-            },
-            "SP": {
-                "INT1": (16.12, 24.39, 31.68, 80.58, 137.89, 4.76),
-                "INT2": (21.45, 32.52, 42.25, 103.34, 169.59, 5.85),
-                "INT3": (26.16, 39.71, 51.60, 126.13, 206.85, 7.14),
-            },
-            "TO": {
-                "INT1": (55.84, 86.55, 137.62, 346.48, 587.53, 20.24),
-                "INT2": (68.76, 106.55, 169.36, 443.54, 781.51, 26.92),
-                "INT3": (104.97, 162.61, 258.38, 675.90, 1190.17, 40.99),
-            },
-        }
-        resultado = {}
-        for uf, regioes in dados.items():
-            resultado[uf] = {}
-            for regiao, (v1, v5, v10, v20, v30, adicional) in regioes.items():
-                resultado[uf][regiao] = {
-                    1: v1,
-                    5: v5,
-                    10: v10,
-                    20: v20,
-                    30: v30,
-                    40: v30 + 10 * adicional,
-                    50: v30 + 20 * adicional,
-                    60: v30 + 30 * adicional,
-                    70: v30 + 40 * adicional,
-                    80: v30 + 50 * adicional,
-                    90: v30 + 60 * adicional,
-                    100: v30 + 70 * adicional,
-                }
-        return resultado
+    @classmethod
+    def _lucro(cls, peso: float) -> tuple[int, Decimal]:
+        faixa = cls._faixa_lucro(peso)
+        return faixa, _d(LUCRO_FAIXAS[faixa])
 
-    def _carregar_lucro(self):
-        """LUCRO do revendedor (tabela de pesagem) – aplica-se a TODOS os casos"""
-        return {
-            1: 13.00, 5: 26.00, 10: 44.00, 20: 80.00, 30: 130.00,
-            40: 140.00, 50: 150.00, 60: 160.00, 70: 170.00,
-            80: 180.00, 90: 190.00, 100: 200.00
-        }
+    @staticmethod
+    def _faixa_promocional(peso: float) -> int:
+        for faixa in (1, 5, 10, 20, 30):
+            if peso <= faixa:
+                return faixa
+        raise ValueError("Peso fora da faixa promocional.")
 
-    def _obter_glm_capital(self, uf: str, peso: float) -> float:
-        """GLM para CAPITAL"""
+    @staticmethod
+    def _peso_glm_ate_30(peso: float) -> float:
+        """
+        Usa a menor coluna GLM que comporte o peso:
+        0,25 / 0,50 / 0,75 / 1 / 2 / ... / 30.
+        """
+        if peso <= 0:
+            raise ValueError("Peso deve ser maior que zero.")
+        for faixa in PESOS_TABELA:
+            if peso <= faixa + 1e-12:
+                return float(faixa)
+        return 30.0
+
+    @staticmethod
+    def _kg_adicionais(peso: float) -> int:
+        """
+        Acima de 30 kg cobra o KG ADICIONAL da tabela.
+        Fração de quilo é arredondada para o próximo kg tarifável.
+        """
         if peso <= 30:
-            for p in [1, 5, 10, 20, 30]:
-                if peso <= p:
-                    return self.glm_fixo[p]
-        # ≥40kg
-        tabela_uf = self.glm_capital.get(uf, self.glm_capital["SP"])
-        for p in [40, 50, 60, 70, 80, 90, 100]:
-            if peso <= p:
-                return tabela_uf[p]
-        return tabela_uf[100] * (peso / 100)
+            return 0
+        return int(math.ceil(peso - 30.0 - 1e-12))
 
-    def _obter_glm_interior(self, uf: str, regiao: str, modalidade: str, peso: float) -> float:
-        """GLM para INTERIOR conforme UF, região e modalidade"""
-        if modalidade == ".COM":
-            tabela_uf = self.glm_interior_com.get(uf, self.glm_interior_com["SP"])
-        else:  # PACKAGE
-            tabela_uf = self.glm_interior_pack.get(uf, self.glm_interior_pack["SP"])
-        tabela_regiao = tabela_uf.get(regiao, tabela_uf.get("INT1"))
-        for p in [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-            if peso <= p:
-                return tabela_regiao[p]
-        return tabela_regiao[100] * (peso / 100)
+    def _glm_regional(self, uf: str, tipo: str, modalidade: str, peso: float):
+        try:
+            tabela = TABELAS_GLM[modalidade][tipo][uf]
+        except KeyError as exc:
+            raise ValueError(
+                f"Não existe GLM para {uf} / {tipo} / {modalidade}."
+            ) from exc
 
-    def _obter_lucro(self, peso: float) -> float:
-        for p in [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-            if peso <= p:
-                return self.lucro[p]
-        return self.lucro[100] * (peso / 100)
-
-    def calcular(self, cep: str, peso: float, modalidade: str = "PACKAGE", valor_nf: float = 0.0) -> dict:
-        info_cep = self.cep_service.buscar(cep)
-        if not info_cep:
-            return {"erro": f"CEP {cep} não encontrado"}
-
-        uf = info_cep.get("uf", "SP")
-        tipo_tarifa = info_cep.get("tipo_tarifa", "CAPITAL")
-        regiao_interior = info_cep.get("regiao_interior")  # "INT1", "INT2", "INT3" ou None
-        cidade = info_cep.get("cidade", "")
-        prazo = info_cep.get("prazo", 5)
-        seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
-
-        # GLM
-        if "Capital" in tipo_tarifa:
-            glm = self._obter_glm_capital(uf, peso)
+        if peso <= 30:
+            peso_tabela = self._peso_glm_ate_30(peso)
+            glm = _d(tabela["pesos"][peso_tabela])
+            adicionais = 0
         else:
-            regiao = regiao_interior if regiao_interior else "INT1"
-            glm = self._obter_glm_interior(uf, regiao, modalidade, peso)
+            peso_tabela = 30.0
+            adicionais = self._kg_adicionais(peso)
+            glm = _d(tabela["pesos"][30.0]) + _d(tabela["adicional"]) * adicionais
 
-        # LUCRO (sempre)
-        lucro = self._obter_lucro(peso)
+        return glm, peso_tabela, adicionais, _d(tabela["adicional"])
 
-        preco_final = glm + lucro
-        ad_valorem = round(valor_nf * seguro_percentual, 2) if valor_nf > 100 else 0.0
-        total = round(preco_final + ad_valorem, 2)
+    def _glm_capital_acima_30(self, uf: str, peso: float):
+        """Calcula a classificação literal ``Capital`` acima de 30 kg.
 
-        return {
-            "success": True,
-            "dados": {
-                "cep": cep,
-                "uf": uf,
-                "cidade": cidade,
-                "tipo_tarifa": tipo_tarifa,
-                "regiao_interior": regiao_interior if "Interior" in tipo_tarifa else None,
-                "prazo": prazo,
-                "peso": peso,
-                "modalidade": modalidade,
-                "glm": round(glm, 2),
-                "lucro": round(lucro, 2),
-                "preco_final": round(preco_final, 2),
-                "ad_valorem": ad_valorem,
-                "total": total,
-                "valor_nf": valor_nf
+        Fonte: aba ``SP CAPITAL`` da PLANILHA-CAP-INT.xlsx.
+
+        Essa aba NÃO possui KG ADICIONAL e NÃO separa PACKAGE de .COM. Ela
+        fornece pontos comerciais homologados em 40, 50, ..., 100 kg.
+        Portanto, qualquer peso entre duas faixas usa a próxima faixa que o
+        comporta, sem interpolação matemática e sem inventar um adicional.
+
+        Exemplos:
+          31..40 kg -> coluna 40 kg
+          41..50 kg -> coluna 50 kg
+          71..80 kg -> coluna 80 kg
+        """
+        pontos = GLM_CAPITAL_PONTOS.get(uf)
+        if not pontos:
+            raise ValueError(f"Sem tabela de Capital para UF {uf}.")
+
+        peso_tarifavel = int(math.ceil(peso - 1e-12))
+        for faixa in (40, 50, 60, 70, 80, 90, 100):
+            if peso_tarifavel <= faixa:
+                return _d(pontos[faixa]), float(faixa), 0, Decimal("0")
+
+        raise ValueError("Peso acima de 100 kg: cotação automática não homologada.")
+
+    def calcular(
+        self,
+        cep: str,
+        peso: float,
+        modalidade: str = "PACKAGE",
+        valor_nf: float = 0.0,
+    ) -> dict:
+        try:
+            peso = float(peso)
+            valor_nf = float(valor_nf)
+            modalidade = self._normalizar_modalidade(modalidade)
+
+            if peso <= 0:
+                raise ValueError("Peso deve ser maior que zero.")
+            if peso > 100:
+                raise ValueError("Peso acima de 100 kg: consulte um atendente.")
+            if valor_nf < 0:
+                raise ValueError("Valor da nota fiscal não pode ser negativo.")
+
+            info = self.cep_service.buscar(cep)
+            if not info:
+                raise ValueError("CEP não encontrado na CIDATEN.")
+
+            uf = str(info["uf"]).strip().upper()
+            cidade = str(info["cidade"]).strip()
+            tipo = self._normalizar_tipo(info["tipo_tarifa"])
+            prazo = int(info.get("prazo", 0) or 0)
+            seguro_percentual = _d(info.get("seguro_percentual", 0) or 0)
+
+            peso_tabela = None
+            kg_adicionais = 0
+            adicional_unitario = Decimal("0")
+            faixa_lucro = None
+            lucro = Decimal("0")
+
+            if tipo == "Capital":
+                tabela_aplicada = "SP CAPITAL / DESTINOS CAPITAL"
+
+                if peso <= 30:
+                    faixa_promo = self._faixa_promocional(peso)
+                    glm = _d(PRECO_PROMOCIONAL_CAPITAL[faixa_promo])
+                    preco_sem_seguro = glm
+                    peso_tabela = float(faixa_promo)
+                    regra = "CAPITAL_PROMOCIONAL"
+                else:
+                    glm, peso_tabela, kg_adicionais, adicional_unitario = (
+                        self._glm_capital_acima_30(uf, peso)
+                    )
+                    faixa_lucro, lucro = self._lucro(peso)
+                    preco_sem_seguro = glm + lucro
+                    regra = "CAPITAL_FAIXA_CAP_X_INT_MAIS_LUCRO"
+
+            elif tipo in self.TIPOS_GLM:
+                tabela_aplicada = tipo
+                glm, peso_tabela, kg_adicionais, adicional_unitario = self._glm_regional(
+                    uf, tipo, modalidade, peso
+                )
+                faixa_lucro, lucro = self._lucro(peso)
+                preco_sem_seguro = glm + lucro
+                regra = "GLM_MODALIDADE_MAIS_LUCRO"
+
+            else:
+                raise ValueError(f"Classificação CIDATEN não homologada: {tipo}")
+
+            seguro_aplicado = bool(valor_nf > 100 and seguro_percentual > 0)
+            seguro = (
+                _d(valor_nf) * seguro_percentual
+                if seguro_aplicado
+                else Decimal("0")
+            )
+
+            preco_final = _moeda(preco_sem_seguro)
+            seguro_final = _moeda(seguro)
+            total = _moeda(_d(preco_final) + _d(seguro_final))
+
+            return {
+                "success": True,
+                "dados": {
+                    # Campos necessários à interface/recibo
+                    "cep": info["cep"],
+                    "uf": uf,
+                    "cidade": cidade,
+                    "tipo_tarifa": tipo,
+                    "prazo": prazo,
+                    "peso": peso,
+                    "modalidade": modalidade,
+                    "preco_final": preco_final,
+                    "frete": preco_final,
+                    "seguro": seguro_final,
+                    "ad_valorem": seguro_final,
+                    "total": total,
+
+                    # Auditoria interna - não exibir ao cliente final
+                    "_auditoria": {
+                        "classificacao_cidaten": tipo,
+                        "cep_faixa_inicio": info.get("cep_inicio"),
+                        "cep_faixa_fim": info.get("cep_fim"),
+                        "frap_fob": info.get("frap_fob", ""),
+                        "tabela_aplicada": tabela_aplicada,
+                        "modalidade_aplicada": modalidade,
+                        "peso_tabela_glm": peso_tabela,
+                        "kg_adicionais": kg_adicionais,
+                        "kg_adicional_unitario": _moeda(adicional_unitario),
+                        "glm": _moeda(glm),
+                        "faixa_lucro": faixa_lucro,
+                        "lucro": _moeda(lucro),
+                        "seguro_percentual": float(seguro_percentual),
+                        "seguro_aplicado": seguro_aplicado,
+                        "regra_calculo": regra,
+                        "versao_motor": VERSAO_MOTOR,
+                        "fonte_cep": "CIDATEN",
+                        "fonte_tarifa": "CAP X INT + GLM LIEV",
+                    },
+                },
             }
-        }
+
+        except ValueError as exc:
+            return {"success": False, "erro": str(exc)}
+        except Exception as exc:
+            return {"success": False, "erro": f"Falha no cálculo do frete: {exc}"}
