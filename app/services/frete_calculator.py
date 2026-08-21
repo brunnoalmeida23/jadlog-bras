@@ -1,273 +1,154 @@
 # app/services/frete_calculator.py
-from __future__ import annotations
-
-import math
-from decimal import Decimal, ROUND_HALF_UP
-
-from .cep_service import CEPService
-from .tarifas_capital_v32 import (
-    GLM_CAPITAL_PONTOS,
-    LUCRO_FAIXAS,
-    PRECO_PROMOCIONAL_CAPITAL,
-)
-from .tarifas_glm_v32 import PESOS_TABELA, TABELAS_GLM
-
-
-CENTAVOS = Decimal("0.01")
-VERSAO_MOTOR = "3.2"
-
-
-def _d(valor) -> Decimal:
-    return Decimal(str(valor))
-
-
-def _moeda(valor) -> float:
-    return float(_d(valor).quantize(CENTAVOS, rounding=ROUND_HALF_UP))
-
+from .tabela_frete import TABELA_FRETE
+import bisect
 
 class FreteCalculator:
-    """
-    Motor V3.2 - Jadlog Brás.
-
-    Entradas:
-      CEP de destino, peso, valor da NF e modalidade.
-
-    Fluxo:
-      CEP -> CIDATEN -> classificação/UF/prazo/% seguro
-      -> tabela aplicável -> GLM do peso
-      -> lucro da faixa -> ad valorem -> total.
-
-    Observação:
-      Os detalhes de composição retornados servem para auditoria do backend.
-      A interface do cliente final não deve exibi-los.
-    """
-
-    TIPOS_GLM = {
-        "Capital 1", "Capital 2", "Capital 3",
-        "Interior 1", "Interior 2", "Interior 3",
-    }
-    FAIXAS_LUCRO = (1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
-
     def __init__(self):
-        self.cep_service = CEPService()
+        # Usar a nova tabela extraída da planilha
+        self.tabela = TABELA_FRETE
+        self.lucro = self._carregar_lucro()
 
-    @staticmethod
-    def _normalizar_modalidade(modalidade: str) -> str:
-        mod = (modalidade or "").strip().upper()
-        if mod in {"PACKAGE", "PACK", ".PACKAGE"}:
-            return "PACKAGE"
-        if mod in {".COM", "COM"}:
-            return ".COM"
-        raise ValueError("Modalidade inválida.")
+    def _carregar_lucro(self):
+        """LUCRO do revendedor (tabela de pesagem)"""
+        return {
+            1: 13.00, 5: 26.00, 10: 44.00, 20: 80.00, 30: 130.00,
+            40: 140.00, 50: 150.00, 60: 160.00, 70: 170.00,
+            80: 180.00, 90: 190.00, 100: 200.00
+        }
 
-    @staticmethod
-    def _normalizar_tipo(tipo: str) -> str:
-        return " ".join((tipo or "").strip().split())
-
-    @classmethod
-    def _faixa_lucro(cls, peso: float) -> int:
-        for faixa in cls.FAIXAS_LUCRO:
-            if peso <= faixa:
-                return faixa
-        raise ValueError("Peso acima de 100 kg: cotação automática não homologada.")
-
-    @classmethod
-    def _lucro(cls, peso: float) -> tuple[int, Decimal]:
-        faixa = cls._faixa_lucro(peso)
-        return faixa, _d(LUCRO_FAIXAS[faixa])
-
-    @staticmethod
-    def _faixa_promocional(peso: float) -> int:
-        for faixa in (1, 5, 10, 20, 30):
-            if peso <= faixa:
-                return faixa
-        raise ValueError("Peso fora da faixa promocional.")
-
-    @staticmethod
-    def _peso_glm_ate_30(peso: float) -> float:
-        """
-        Usa a menor coluna GLM que comporte o peso:
-        0,25 / 0,50 / 0,75 / 1 / 2 / ... / 30.
-        """
-        if peso <= 0:
-            raise ValueError("Peso deve ser maior que zero.")
-        for faixa in PESOS_TABELA:
-            if peso <= faixa + 1e-12:
-                return float(faixa)
-        return 30.0
-
-    @staticmethod
-    def _kg_adicionais(peso: float) -> int:
-        """
-        Acima de 30 kg cobra o KG ADICIONAL da tabela.
-        Fração de quilo é arredondada para o próximo kg tarifável.
-        """
-        if peso <= 30:
-            return 0
-        return int(math.ceil(peso - 30.0 - 1e-12))
-
-    def _glm_regional(self, uf: str, tipo: str, modalidade: str, peso: float):
-        try:
-            tabela = TABELAS_GLM[modalidade][tipo][uf]
-        except KeyError as exc:
-            raise ValueError(
-                f"Não existe GLM para {uf} / {tipo} / {modalidade}."
-            ) from exc
-
-        if peso <= 30:
-            peso_tabela = self._peso_glm_ate_30(peso)
-            glm = _d(tabela["pesos"][peso_tabela])
-            adicionais = 0
+    def _obter_glm(self, uf: str, tipo_tarifa: str, peso: float) -> float:
+        """Obtém o GLM da tabela para a UF, tipo de tarifa e peso"""
+        # Capital 1, 2, 3 - usar o primeiro que encontrar
+        tipo_base = tipo_tarifa.split()[0]  # "Capital" ou "Interior"
+        
+        # Procurar pela chave exata
+        chave = f"{uf}_{tipo_tarifa}"
+        if chave in self.tabela:
+            dados = self.tabela[chave]
         else:
-            peso_tabela = 30.0
-            adicionais = self._kg_adicionais(peso)
-            glm = _d(tabela["pesos"][30.0]) + _d(tabela["adicional"]) * adicionais
-
-        return glm, peso_tabela, adicionais, _d(tabela["adicional"])
-
-    def _glm_capital_acima_30(self, uf: str, peso: float):
-        """Calcula a classificação literal ``Capital`` acima de 30 kg.
-
-        Fonte: aba ``SP CAPITAL`` da PLANILHA-CAP-INT.xlsx.
-
-        Essa aba NÃO possui KG ADICIONAL e NÃO separa PACKAGE de .COM. Ela
-        fornece pontos comerciais homologados em 40, 50, ..., 100 kg.
-        Portanto, qualquer peso entre duas faixas usa a próxima faixa que o
-        comporta, sem interpolação matemática e sem inventar um adicional.
-
-        Exemplos:
-          31..40 kg -> coluna 40 kg
-          41..50 kg -> coluna 50 kg
-          71..80 kg -> coluna 80 kg
-        """
-        pontos = GLM_CAPITAL_PONTOS.get(uf)
-        if not pontos:
-            raise ValueError(f"Sem tabela de Capital para UF {uf}.")
-
-        peso_tarifavel = int(math.ceil(peso - 1e-12))
-        for faixa in (40, 50, 60, 70, 80, 90, 100):
-            if peso_tarifavel <= faixa:
-                return _d(pontos[faixa]), float(faixa), 0, Decimal("0")
-
-        raise ValueError("Peso acima de 100 kg: cotação automática não homologada.")
-
-    def calcular(
-        self,
-        cep: str,
-        peso: float,
-        modalidade: str = "PACKAGE",
-        valor_nf: float = 0.0,
-    ) -> dict:
-        try:
-            peso = float(peso)
-            valor_nf = float(valor_nf)
-            modalidade = self._normalizar_modalidade(modalidade)
-
-            if peso <= 0:
-                raise ValueError("Peso deve ser maior que zero.")
-            if peso > 100:
-                raise ValueError("Peso acima de 100 kg: consulte um atendente.")
-            if valor_nf < 0:
-                raise ValueError("Valor da nota fiscal não pode ser negativo.")
-
-            info = self.cep_service.buscar(cep)
-            if not info:
-                raise ValueError("CEP não encontrado na CIDATEN.")
-
-            uf = str(info["uf"]).strip().upper()
-            cidade = str(info["cidade"]).strip()
-            tipo = self._normalizar_tipo(info["tipo_tarifa"])
-            prazo = int(info.get("prazo", 0) or 0)
-            seguro_percentual = _d(info.get("seguro_percentual", 0) or 0)
-
-            peso_tabela = None
-            kg_adicionais = 0
-            adicional_unitario = Decimal("0")
-            faixa_lucro = None
-            lucro = Decimal("0")
-
-            if tipo == "Capital":
-                tabela_aplicada = "SP CAPITAL / DESTINOS CAPITAL"
-
-                if peso <= 30:
-                    faixa_promo = self._faixa_promocional(peso)
-                    glm = _d(PRECO_PROMOCIONAL_CAPITAL[faixa_promo])
-                    preco_sem_seguro = glm
-                    peso_tabela = float(faixa_promo)
-                    regra = "CAPITAL_PROMOCIONAL"
-                else:
-                    glm, peso_tabela, kg_adicionais, adicional_unitario = (
-                        self._glm_capital_acima_30(uf, peso)
-                    )
-                    faixa_lucro, lucro = self._lucro(peso)
-                    preco_sem_seguro = glm + lucro
-                    regra = "CAPITAL_FAIXA_CAP_X_INT_MAIS_LUCRO"
-
-            elif tipo in self.TIPOS_GLM:
-                tabela_aplicada = tipo
-                glm, peso_tabela, kg_adicionais, adicional_unitario = self._glm_regional(
-                    uf, tipo, modalidade, peso
-                )
-                faixa_lucro, lucro = self._lucro(peso)
-                preco_sem_seguro = glm + lucro
-                regra = "GLM_MODALIDADE_MAIS_LUCRO"
-
+            # Se não encontrar, tentar com "Capital 1" ou "Interior 1"
+            chave_fallback = f"{uf}_{tipo_base} 1"
+            if chave_fallback in self.tabela:
+                dados = self.tabela[chave_fallback]
             else:
-                raise ValueError(f"Classificação CIDATEN não homologada: {tipo}")
+                # Fallback para SP Capital 1
+                dados = self.tabela.get("SP_Capital 1", {})
+                if not dados:
+                    return 0
+        
+        pesos = dados.get("pesos", {})
+        kg_adicional = dados.get("kg_adicional", 0)
+        
+        # Buscar o valor para o peso
+        # Se o peso for <= 0.25, usar 0.25
+        if peso <= 0.25:
+            return pesos.get(0.25, 0)
+        
+        # Para pesos > 30, usar kg_adicional
+        if peso > 30:
+            valor_30 = pesos.get(30, 0)
+            excesso = peso - 30
+            return valor_30 + (excesso * kg_adicional)
+        
+        # Interpolação linear entre os pesos disponíveis
+        pesos_ordenados = sorted(pesos.keys())
+        
+        # Se o peso exceder o maior, usa kg_adicional
+        if peso > pesos_ordenados[-1]:
+            ultimo_peso = pesos_ordenados[-1]
+            ultimo_valor = pesos[ultimo_peso]
+            if kg_adicional > 0:
+                return ultimo_valor + (peso - ultimo_peso) * kg_adicional
+            return ultimo_valor
+        
+        # Encontrar o intervalo
+        for i in range(len(pesos_ordenados) - 1):
+            p1 = pesos_ordenados[i]
+            p2 = pesos_ordenados[i + 1]
+            if p1 <= peso <= p2:
+                v1 = pesos[p1]
+                v2 = pesos[p2]
+                if p2 == p1:
+                    return v1
+                return v1 + (v2 - v1) * (peso - p1) / (p2 - p1)
+        
+        return pesos.get(peso, 0)
 
-            seguro_aplicado = bool(valor_nf > 100 and seguro_percentual > 0)
-            seguro = (
-                _d(valor_nf) * seguro_percentual
-                if seguro_aplicado
-                else Decimal("0")
-            )
+    def _obter_lucro(self, peso: float) -> float:
+        """Obtém o lucro baseado no peso"""
+        if peso <= 1:
+            return self.lucro[1]
+        elif peso <= 5:
+            return self.lucro[5]
+        elif peso <= 10:
+            return self.lucro[10]
+        elif peso <= 20:
+            return self.lucro[20]
+        elif peso <= 30:
+            return self.lucro[30]
+        elif peso <= 40:
+            return self.lucro[40]
+        elif peso <= 50:
+            return self.lucro[50]
+        elif peso <= 60:
+            return self.lucro[60]
+        elif peso <= 70:
+            return self.lucro[70]
+        elif peso <= 80:
+            return self.lucro[80]
+        elif peso <= 90:
+            return self.lucro[90]
+        else:
+            return self.lucro[100]
 
-            preco_final = _moeda(preco_sem_seguro)
-            seguro_final = _moeda(seguro)
-            total = _moeda(_d(preco_final) + _d(seguro_final))
+    def calcular(self, cep: str, peso: float, modalidade: str = "PACKAGE", valor_nf: float = 0.0) -> dict:
+        """Calcula o frete baseado no CEP, peso, modalidade e valor da NF"""
+        from .cep_service import CEPService
+        
+        cep_service = CEPService()
+        info_cep = cep_service.buscar(cep)
+        
+        if not info_cep:
+            return {"erro": f"CEP {cep} não encontrado"}
 
-            return {
-                "success": True,
-                "dados": {
-                    # Campos necessários à interface/recibo
-                    "cep": info["cep"],
-                    "uf": uf,
-                    "cidade": cidade,
-                    "tipo_tarifa": tipo,
-                    "prazo": prazo,
-                    "peso": peso,
-                    "modalidade": modalidade,
-                    "preco_final": preco_final,
-                    "frete": preco_final,
-                    "seguro": seguro_final,
-                    "ad_valorem": seguro_final,
-                    "total": total,
+        uf = info_cep.get("uf", "SP")
+        tipo_tarifa = info_cep.get("tipo_tarifa", "Capital")
+        cidade = info_cep.get("cidade", "")
+        prazo = info_cep.get("prazo", 5)
+        seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
+        regiao_interior = info_cep.get("regiao_interior")  # "INT1", "INT2", "INT3" ou None
 
-                    # Auditoria interna - não exibir ao cliente final
-                    "_auditoria": {
-                        "classificacao_cidaten": tipo,
-                        "cep_faixa_inicio": info.get("cep_inicio"),
-                        "cep_faixa_fim": info.get("cep_fim"),
-                        "frap_fob": info.get("frap_fob", ""),
-                        "tabela_aplicada": tabela_aplicada,
-                        "modalidade_aplicada": modalidade,
-                        "peso_tabela_glm": peso_tabela,
-                        "kg_adicionais": kg_adicionais,
-                        "kg_adicional_unitario": _moeda(adicional_unitario),
-                        "glm": _moeda(glm),
-                        "faixa_lucro": faixa_lucro,
-                        "lucro": _moeda(lucro),
-                        "seguro_percentual": float(seguro_percentual),
-                        "seguro_aplicado": seguro_aplicado,
-                        "regra_calculo": regra,
-                        "versao_motor": VERSAO_MOTOR,
-                        "fonte_cep": "CIDATEN",
-                        "fonte_tarifa": "CAP X INT + GLM LIEV",
-                    },
-                },
+        # GLM - usar a nova tabela
+        glm = self._obter_glm(uf, tipo_tarifa, peso)
+        
+        # LUCRO
+        lucro = self._obter_lucro(peso)
+        
+        preco_final = glm + lucro
+        
+        # Seguro (Ad Valorem)
+        seguro = 0
+        if valor_nf > 100:
+            seguro = round(valor_nf * seguro_percentual, 2)
+        
+        total = round(preco_final + seguro, 2)
+
+        return {
+            "success": True,
+            "dados": {
+                "cep": cep,
+                "uf": uf,
+                "cidade": cidade,
+                "tipo_tarifa": tipo_tarifa,
+                "regiao_interior": regiao_interior if "Interior" in tipo_tarifa else None,
+                "prazo": prazo,
+                "peso": peso,
+                "modalidade": modalidade,
+                "glm": round(glm, 2),
+                "lucro": round(lucro, 2),
+                "preco_final": round(preco_final, 2),
+                "seguro": seguro,
+                "total": total,
+                "valor_nf": valor_nf
             }
-
-        except ValueError as exc:
-            return {"success": False, "erro": str(exc)}
-        except Exception as exc:
-            return {"success": False, "erro": f"Falha no cálculo do frete: {exc}"}
+        }
