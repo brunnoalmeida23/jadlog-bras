@@ -264,9 +264,10 @@ async def simulador_page(request: Request):
                         <div class="mt-3">
                             <label class="form-label">Modalidade</label>
                             <select class="form-control form-control-sm" id="modalidade">
-                                <option value="PACKAGE">PACKAGE</option>
-                                <option value=".COM">.COM</option>
-                            </select>
+    			    <option value="PACKAGE">PACKAGE</option>
+			    <option value=".COM">.COM</option>
+			    <option value="DROPF">DROPF (Dropoff)</option>
+		            </select>
                             <small class="text-muted" style="font-size: 0.7rem;">Selecione a modalidade desejada</small>
                         </div>
                         
