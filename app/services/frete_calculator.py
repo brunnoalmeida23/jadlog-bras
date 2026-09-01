@@ -1,4 +1,5 @@
 # app/services/frete_calculator.py
+from .tabela_dropf import TABELA_DROPF
 from .tabela_frete import TABELA_FRETE
 import bisect
 
@@ -6,6 +7,7 @@ class FreteCalculator:
     def __init__(self):
         # Usar a nova tabela extraída da planilha
         self.tabela = TABELA_FRETE
+        self.tabela_dropf = TABELA_DROPF  # ADICIONADO
         self.lucro = self._carregar_lucro()
 
     def _carregar_lucro(self):
@@ -74,6 +76,56 @@ class FreteCalculator:
         
         return pesos.get(peso, 0)
 
+    def _obter_glm_dropf(self, uf: str, peso: float) -> float:
+        """Obtém o GLM da tabela DROPF para a UF e peso"""
+        # Procurar a chave que começa com a UF
+        for key in self.tabela_dropf:
+            if key.startswith(uf):
+                dados = self.tabela_dropf[key]
+                pesos = dados.get("pesos", {})
+                
+                if peso <= 1:
+                    return pesos.get(1, 0)
+                elif peso <= 5:
+                    return pesos.get(5, 0)
+                elif peso <= 10:
+                    return pesos.get(10, 0)
+                elif peso <= 15:
+                    return pesos.get(15, 0)
+                elif peso <= 20:
+                    return pesos.get(20, 0)
+                elif peso <= 25:
+                    return pesos.get(25, 0)
+                elif peso <= 30:
+                    return pesos.get(30, 0)
+                elif peso <= 40:
+                    return pesos.get(40, 0)
+                elif peso <= 50:
+                    return pesos.get(50, 0)
+                elif peso <= 60:
+                    return pesos.get(60, 0)
+                elif peso <= 70:
+                    return pesos.get(70, 0)
+                elif peso <= 80:
+                    return pesos.get(80, 0)
+                elif peso <= 90:
+                    return pesos.get(90, 0)
+                else:
+                    return pesos.get(100, 0)
+        
+        # Fallback para SP
+        if "SP" in self.tabela_dropf:
+            dados = self.tabela_dropf.get("SP_4474970", {})
+            pesos = dados.get("pesos", {})
+            if peso <= 10:
+                return pesos.get(10, 86.05)
+            elif peso <= 30:
+                return pesos.get(30, 222.92)
+            else:
+                return pesos.get(100, 725.68)
+        
+        return 0
+
     def _obter_lucro(self, peso: float) -> float:
         """Obtém o lucro baseado no peso"""
         if peso <= 1:
@@ -116,10 +168,13 @@ class FreteCalculator:
         cidade = info_cep.get("cidade", "")
         prazo = info_cep.get("prazo", 5)
         seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
-        regiao_interior = info_cep.get("regiao_interior")  # "INT1", "INT2", "INT3" ou None
+        regiao_interior = info_cep.get("regiao_interior")
 
-        # GLM - usar a nova tabela
-        glm = self._obter_glm(uf, tipo_tarifa, peso)
+        # GLM - escolher conforme modalidade
+        if modalidade == "DROPF":
+            glm = self._obter_glm_dropf(uf, peso)
+        else:
+            glm = self._obter_glm(uf, tipo_tarifa, peso)
         
         # LUCRO
         lucro = self._obter_lucro(peso)
