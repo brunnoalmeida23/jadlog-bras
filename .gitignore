@@ -11,3 +11,6 @@ cotacoes.json
 .vscode/
 .idea/
 .vercel/
+
+.vercel
+.env*
