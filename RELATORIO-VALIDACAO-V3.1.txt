@@ -1,0 +1,21 @@
+RELATÓRIO DE VALIDAÇÃO — V3.1
+
+Arquitetura:
+CEP -> CIDATEN -> classificação -> modalidade -> GLM -> lucro -> ad valorem -> total.
+
+Fontes:
+- CIDATEN: identificação de CEP, UF, cidade, prazo, tipo e seguro.
+- CAP x INT: regra operacional consolidada.
+- GLM Pack/.COM LIEV: granularidade de peso e KG adicional.
+- Painel externo: não usado pelo motor.
+
+Validações incorporadas:
+- Capital literal separado de Capital 1/2/3.
+- Interior 1/2/3 separado.
+- PACKAGE e .COM independentes nas regras regionais.
+- 1.944 pontos CAP x INT x GLM LIEV conferidos na suíte.
+- lucro de 40 kg corrigido para R$ 140.
+- pesos variáveis acima de 30 kg por KG adicional nas regras regionais.
+- ad valorem lido da CIDATEN.
+- auditoria interna não destinada à interface do cliente.
+- nenhum arquivo PWA incluído no pacote.

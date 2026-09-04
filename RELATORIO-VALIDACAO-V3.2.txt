@@ -1,0 +1,14 @@
+RELATÓRIO DE VALIDAÇÃO — MOTOR V3.2
+
+Fontes de regra:
+- CIDATEN: classificação do CEP, UF, cidade, prazo, FRAP e percentual de seguro.
+- PLANILHA-CAP-INT.xlsx: regra operacional consolidada.
+- GLM Pack e .Com LIEV.xlsx: pesos e KG ADICIONAL para Capital 1/2/3 e Interior 1/2/3.
+
+Correção principal V3.2:
+- removida interpolação não documentada da classificação literal Capital acima de 30 kg;
+- usada a próxima faixa homologada da aba SP CAPITAL (40/50/.../100);
+- nenhuma diferença PACKAGE/.COM é inventada para a aba SP CAPITAL, pois a fonte não a contém;
+- modalidades continuam distintas nas tabelas Capital 1/2/3 e Interior 1/2/3.
+
+PWA/splash: nenhum arquivo relacionado foi incluído no pacote.

@@ -1,0 +1,31 @@
+JADLOG BRÁS — RELATÓRIO V3
+
+Validação executada sobre uma cópia do projeto enviado pelo usuário.
+
+RESULTADOS
+- Import da aplicação: APP OK - 23 rotas
+- Testes V3: 13 passed
+- py_compile: OK
+- PWA: hashes de home.py, manifest.json, sw.js e launcher icons idênticos antes/depois
+- Script de limpeza da UI: py_compile OK
+
+FONTES
+- Cidaten_2026.xlsx: classificação de CEP, UF, cidade, prazo, FRAP e % Seguro
+- GLM Pack e .Com LIEV.xlsx: GLM completa por modalidade/tipo/UF/peso + KG ADICIONAL
+- PLANILHA-CAP-INT.xlsx: regra consolidada, promoção Capital e lucro
+- final clientes impressão.xlsx: referência operacional histórica; 40 kg deve usar lucro 140 conforme correção informada
+
+REGRA V3
+- Capital <=30: preço promocional final
+- Capital >30: peso variável derivado dos pontos SP CAPITAL
+- Capital 1/2/3 e Interior 1/2/3 <=30: GLM da coluna de peso
+- Capital 1/2/3 e Interior 1/2/3 >30: GLM 30 + KG ADICIONAL * excedente
+- Lucro pela faixa comercial
+- NF >100: ad valorem pelo percentual da CIDATEN
+- limite homologado: 100 kg
+
+PONTO A VALIDAR COM CLIENTE
+A aba SP CAPITAL não possui um campo explícito KG ADICIONAL para 31–39 kg.
+A V3 deriva o incremento por kg a partir da diferença entre 40 e 50 kg.
+Essa regra é matemática e reproduz os pontos 40/50/.../100, mas 31–39 deve
+ser validado em uma cotação real antes do deploy definitivo.
