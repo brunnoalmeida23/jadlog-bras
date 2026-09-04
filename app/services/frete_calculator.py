@@ -8,15 +8,6 @@ class FreteCalculator:
     def __init__(self):
         self.tabela = TABELA_FRETE
         self.tabela_dropf = TABELA_DROPF
-        self.lucro = self._carregar_lucro()
-
-    def _carregar_lucro(self):
-        """LUCRO do revendedor (tabela de pesagem)"""
-        return {
-            1: 13.00, 5: 26.00, 10: 44.00, 20: 80.00, 30: 130.00,
-            40: 140.00, 50: 150.00, 60: 160.00, 70: 170.00,
-            80: 180.00, 90: 190.00, 100: 200.00
-        }
 
     def _obter_glm(self, uf: str, tipo_tarifa: str, peso: float) -> float:
         """Obtém o GLM da tabela para a UF, tipo de tarifa e peso"""
@@ -83,16 +74,6 @@ class FreteCalculator:
             return pesos_sp.get(30, 222.92)
         return pesos_sp.get(100, 725.68)
 
-    def _obter_lucro(self, peso: float) -> float:
-        """Obtém o lucro baseado no peso de forma dinâmica"""
-        chaves_lucro = sorted(self.lucro.keys())
-        idx = bisect.bisect_left(chaves_lucro, peso)
-        
-        if idx >= len(chaves_lucro):
-            return self.lucro[chaves_lucro[-1]]
-        
-        return self.lucro[chaves_lucro[idx]]
-
     def calcular(self, cep: str, peso: float, modalidade: str = "PACKAGE", valor_nf: float = 0.0) -> dict:
         """Calcula o frete baseado no CEP, peso, modalidade e valor da NF"""
         cep_service = CEPService()
@@ -108,11 +89,17 @@ class FreteCalculator:
         seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
         regiao_interior = info_cep.get("regiao_interior")
 
+        # Obtém o valor base (GLM) conforme a modalidade
         glm = self._obter_glm_dropf(uf, peso) if modalidade == "DROPF" else self._obter_glm(uf, tipo_tarifa, peso)
-        lucro = self._obter_lucro(peso)
         
-        preco_final = glm + lucro
-        seguro = round(valor_nf * seguro_percentual, 2) if valor_nf > 100 else 0.0
+        # O preço final agora é diretamente o GLM (sem somar margem de revendedor)
+        preco_final = glm
+        
+        # Seguro (Ad Valorem): Só aplica se o valor da NF for superior a R$ 100,00
+        seguro = 0.0
+        if valor_nf > 100.0:
+            seguro = round(valor_nf * seguro_percentual, 2)
+        
         total = round(preco_final + seguro, 2)
 
         return {
@@ -127,7 +114,7 @@ class FreteCalculator:
                 "peso": peso,
                 "modalidade": modalidade,
                 "glm": round(glm, 2),
-                "lucro": round(lucro, 2),
+                "lucro": 0.0,  # Lucro zerado/removido conforme nova regra
                 "preco_final": round(preco_final, 2),
                 "seguro": seguro,
                 "total": total,
