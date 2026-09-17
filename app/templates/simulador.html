@@ -510,6 +510,15 @@
                     </button>
 
                     <button
+                        type="button"
+                        class="btn btn-outline-danger"
+                        id="btnBaixarRecibo"
+                    >
+                        <i class="bi bi-file-earmark-pdf me-2"></i>
+                        Baixar recibo
+                    </button>
+
+                    <button
                         type="submit"
                         class="btn btn-danger"
                     >
@@ -744,46 +753,36 @@
         }
     });
 
+    function abrirModalRecibo() {
+        if (!cotacaoAtual || !exigirLogin()) {
+            return;
+        }
+
+        const formularioImpressao =
+            document.getElementById("formImpressao");
+
+        if (formularioImpressao) {
+            formularioImpressao.reset();
+        }
+
+        const modalElemento =
+            document.getElementById("modalImpressao");
+
+        if (!modalElemento) {
+            alert("Nao foi possivel abrir o formulario do recibo.");
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(modalElemento);
+
+        modal.show();
+    }
+
     document
         .getElementById("btnBaixarCotacao")
         .addEventListener("click", function () {
-            if (!cotacaoAtual) {
-                return;
-            }
-
-            const formularioPdf = document.createElement("form");
-
-            formularioPdf.method = "POST";
-            formularioPdf.action = "/pdf/cotacao";
-            formularioPdf.style.display = "none";
-
-            const camposPdf = {
-                numero_cotacao: cotacaoAtual.numero_cotacao,
-                cliente_nome: cotacaoAtual.cliente_nome,
-                cliente_documento: cotacaoAtual.cliente_documento,
-                destino: cotacaoAtual.destino,
-                cep: cotacaoAtual.cep,
-                peso: cotacaoAtual.peso,
-                volumes: cotacaoAtual.volumes,
-                valor_nf: cotacaoAtual.valor_nf,
-                prazo: cotacaoAtual.prazo,
-                package: cotacaoAtual.package,
-                com: cotacaoAtual.com
-            };
-
-            Object.entries(camposPdf).forEach(([nome, valor]) => {
-                const campo = document.createElement("input");
-
-                campo.type = "hidden";
-                campo.name = nome;
-                campo.value = valor ?? "";
-
-                formularioPdf.appendChild(campo);
-            });
-
-            document.body.appendChild(formularioPdf);
-            formularioPdf.submit();
-            formularioPdf.remove();
+            abrirModalRecibo();
         });
     const btnAbrirImpressao =
         document.getElementById("btnAbrirImpressao");
@@ -808,6 +807,94 @@
                 );
 
                 modal.show();
+            }
+        );
+    }
+
+
+    const btnBaixarRecibo =
+        document.getElementById("btnBaixarRecibo");
+
+    if (btnBaixarRecibo) {
+        btnBaixarRecibo.addEventListener(
+            "click",
+            function () {
+                if (!cotacaoAtual || !exigirLogin()) {
+                    return;
+                }
+
+                const modalidade =
+                    document.getElementById(
+                        "modalidadeImpressao"
+                    ).value;
+
+                const cte =
+                    document.getElementById(
+                        "cteImpressao"
+                    ).value.trim();
+
+                const nf =
+                    document.getElementById(
+                        "nfImpressao"
+                    ).value.trim();
+
+                const destinatario =
+                    document.getElementById(
+                        "destinatarioImpressao"
+                    ).value.trim();
+
+                const observacoes =
+                    document.getElementById(
+                        "observacoesImpressao"
+                    ).value.trim();
+
+                if (!modalidade || !cte || !nf || !destinatario) {
+                    alert(
+                        "Preencha modalidade, rastreio/CT-e, " +
+                        "NF e destinatario."
+                    );
+                    return;
+                }
+
+                const formularioPdf =
+                    document.createElement("form");
+
+                formularioPdf.method = "POST";
+                formularioPdf.action = "/pdf/cotacao";
+                formularioPdf.style.display = "none";
+
+                const camposPdf = {
+                    numero_cotacao: cotacaoAtual.numero_cotacao,
+                    cliente_nome: cotacaoAtual.cliente_nome,
+                    cliente_documento: cotacaoAtual.cliente_documento,
+                    destino: cotacaoAtual.destino,
+                    cep: cotacaoAtual.cep,
+                    peso: cotacaoAtual.peso,
+                    volumes: cotacaoAtual.volumes,
+                    valor_nf: cotacaoAtual.valor_nf,
+                    prazo: cotacaoAtual.prazo,
+                    package: cotacaoAtual.package,
+                    com: cotacaoAtual.com,
+                    modalidade: modalidade,
+                    cte: cte,
+                    nf: nf,
+                    destinatario: destinatario,
+                    observacoes: observacoes
+                };
+
+                Object.entries(camposPdf).forEach(([nome, valor]) => {
+                    const campo = document.createElement("input");
+
+                    campo.type = "hidden";
+                    campo.name = nome;
+                    campo.value = valor ?? "";
+
+                    formularioPdf.appendChild(campo);
+                });
+
+                document.body.appendChild(formularioPdf);
+                formularioPdf.submit();
+                formularioPdf.remove();
             }
         );
     }

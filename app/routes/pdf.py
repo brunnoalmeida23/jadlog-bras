@@ -7,9 +7,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, Form
 from fastapi.responses import StreamingResponse
+
+from reportlab.graphics.barcode import code128
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -26,6 +29,9 @@ router = APIRouter(
     prefix="/pdf",
     tags=["PDF"],
 )
+
+
+LARGURA_RECIBO = 58 * mm
 
 
 def formatar_documento(valor: str) -> str:
@@ -53,7 +59,7 @@ def formatar_cep(valor: str) -> str:
     if len(numeros) == 8:
         return f"{numeros[:5]}-{numeros[5:]}"
 
-    return valor
+    return valor or "Não informado"
 
 
 def formatar_moeda(valor: float) -> str:
@@ -86,6 +92,59 @@ def formatar_prazo(valor: str) -> str:
     return texto
 
 
+def escapar_html(valor: str) -> str:
+    texto = str(valor or "")
+
+    return (
+        texto
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
+def criar_qrcode(valor: str) -> Drawing:
+    qr = QrCodeWidget(valor)
+
+    tamanho = 22 * mm
+
+    desenho = Drawing(
+        tamanho,
+        tamanho,
+    )
+
+    desenho.add(qr)
+
+    qr.barWidth = tamanho
+    qr.barHeight = tamanho
+
+    return desenho
+
+
+def criar_codigo_barras(valor: str) -> Drawing:
+    codigo = code128.Code128(
+        str(valor or ""),
+        barHeight=11 * mm,
+        barWidth=0.42 * mm,
+    )
+
+    largura = codigo.width + 4 * mm
+
+    desenho = Drawing(
+        largura,
+        14 * mm,
+    )
+
+    codigo.x = 2 * mm
+    codigo.y = 2 * mm
+
+    desenho.add(codigo)
+
+    return desenho
+
+
 @router.post("/cotacao")
 async def gerar_pdf_cotacao(
     numero_cotacao: str = Form(...),
@@ -99,17 +158,22 @@ async def gerar_pdf_cotacao(
     prazo: str = Form(...),
     package: float = Form(...),
     com: float = Form(...),
+    modalidade: str = Form(""),
+    cte: str = Form(""),
+    nf: str = Form(""),
+    destinatario: str = Form(""),
+    observacoes: str = Form(""),
 ):
     memoria = io.BytesIO()
 
     documento = SimpleDocTemplate(
         memoria,
-        pagesize=A4,
-        rightMargin=18 * mm,
-        leftMargin=18 * mm,
-        topMargin=14 * mm,
-        bottomMargin=14 * mm,
-        title=f"Cotação {numero_cotacao}",
+        pagesize=(LARGURA_RECIBO, 400 * mm),
+        rightMargin=5 * mm,
+        leftMargin=5 * mm,
+        topMargin=4 * mm,
+        bottomMargin=4 * mm,
+        title=f"Recibo {numero_cotacao}",
         author="Jadlog Brás",
     )
 
@@ -119,45 +183,64 @@ async def gerar_pdf_cotacao(
         "Centralizado",
         parent=estilos["Normal"],
         alignment=TA_CENTER,
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=9,
+        textColor=colors.black,
+    )
+
+    estilo_centralizado_negrito = ParagraphStyle(
+        "CentralizadoNegrito",
+        parent=estilo_centralizado,
         fontName="Helvetica-Bold",
-        fontSize=9,
-        leading=12,
     )
 
     estilo_titulo = ParagraphStyle(
         "Titulo",
-        parent=estilo_centralizado,
-        fontSize=19,
-        leading=22,
-        textColor=colors.HexColor("#E31E24"),
-        spaceAfter=4,
+        parent=estilo_centralizado_negrito,
+        fontSize=11,
+        leading=13,
     )
 
-    estilo_subtitulo = ParagraphStyle(
-        "Subtitulo",
-        parent=estilo_centralizado,
-        fontSize=13,
-        leading=16,
-        textColor=colors.HexColor("#212529"),
-        spaceAfter=12,
+    estilo_unidade = ParagraphStyle(
+        "Unidade",
+        parent=estilo_centralizado_negrito,
+        fontSize=12,
+        leading=14,
     )
 
     estilo_rotulo = ParagraphStyle(
         "Rotulo",
         parent=estilos["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
+        fontSize=6.5,
+        leading=7.5,
         textColor=colors.HexColor("#555555"),
+        alignment=TA_LEFT,
     )
 
     estilo_valor = ParagraphStyle(
         "Valor",
         parent=estilos["Normal"],
-        fontName="Helvetica",
-        fontSize=10,
-        leading=13,
-        textColor=colors.HexColor("#111111"),
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=9.5,
+        textColor=colors.black,
+        alignment=TA_LEFT,
+    )
+
+    estilo_valor_menor = ParagraphStyle(
+        "ValorMenor",
+        parent=estilo_valor,
+        fontSize=7.5,
+        leading=9,
+    )
+
+    estilo_total = ParagraphStyle(
+        "Total",
+        parent=estilo_centralizado_negrito,
+        fontSize=16,
+        leading=18,
     )
 
     elementos = []
@@ -171,284 +254,497 @@ async def gerar_pdf_cotacao(
     if os.path.exists(logo_path):
         logo = Image(
             logo_path,
-            width=48 * mm,
-            height=18 * mm,
+            width=34 * mm,
+            height=12 * mm,
         )
         logo.hAlign = "CENTER"
         elementos.append(logo)
-        elementos.append(Spacer(1, 4 * mm))
+        elementos.append(Spacer(1, 1.5 * mm))
 
     elementos.append(
         Paragraph(
             "JADLOG BRÁS",
+            estilo_unidade,
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            "RECIBO DE FRETE",
             estilo_titulo,
         )
     )
 
     elementos.append(
-        Paragraph(
-            "COTAÇÃO DE FRETE",
-            estilo_subtitulo,
+        Spacer(1, 2 * mm)
+    )
+
+    elementos.append(
+        Table(
+            [
+                [
+                    Paragraph(
+                        "<b>COTAÇÃO</b>",
+                        estilo_rotulo,
+                    ),
+                    Paragraph(
+                        "<b>DATA</b>",
+                        estilo_rotulo,
+                    ),
+                ],
+                [
+                    Paragraph(
+                        escapar_html(numero_cotacao),
+                        estilo_valor,
+                    ),
+                    Paragraph(
+                        datetime.now().strftime(
+                            "%d/%m/%Y %H:%M"
+                        ),
+                        estilo_valor_menor,
+                    ),
+                ],
+            ],
+            colWidths=[
+                27 * mm,
+                21 * mm,
+            ],
+            style=TableStyle(
+                [
+                    (
+                        "LINEABOVE",
+                        (0, 0),
+                        (-1, 0),
+                        0.5,
+                        colors.black,
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 1),
+                        (-1, 1),
+                        0.5,
+                        colors.black,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                ]
+            ),
         )
     )
 
-    emissao = datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    dados_cotacao = [
-        [
-            Paragraph("NÚMERO", estilo_rotulo),
-            Paragraph("EMISSÃO", estilo_rotulo),
-        ],
-        [
-            Paragraph(numero_cotacao, estilo_valor),
-            Paragraph(emissao, estilo_valor),
-        ],
-        [
-            Paragraph("CLIENTE", estilo_rotulo),
-            Paragraph("CPF/CNPJ", estilo_rotulo),
-        ],
-        [
-            Paragraph(cliente_nome or "Cliente não informado", estilo_valor),
-            Paragraph(formatar_documento(cliente_documento), estilo_valor),
-        ],
-        [
-            Paragraph("DESTINO", estilo_rotulo),
-            Paragraph("CEP", estilo_rotulo),
-        ],
-        [
-            Paragraph(destino, estilo_valor),
-            Paragraph(formatar_cep(cep), estilo_valor),
-        ],
-        [
-            Paragraph("PESO", estilo_rotulo),
-            Paragraph("VOLUMES", estilo_rotulo),
-        ],
-        [
-            Paragraph(formatar_peso(peso), estilo_valor),
-            Paragraph(str(volumes), estilo_valor),
-        ],
-        [
-            Paragraph("VALOR DA NF", estilo_rotulo),
-            Paragraph("PRAZO", estilo_rotulo),
-        ],
-        [
-            Paragraph(formatar_moeda(valor_nf), estilo_valor),
-            Paragraph(formatar_prazo(prazo), estilo_valor),
-        ],
-    ]
-
-    tabela_dados = Table(
-        dados_cotacao,
-        colWidths=[
-            84 * mm,
-            84 * mm,
-        ],
+    elementos.append(
+        Spacer(1, 2 * mm)
     )
 
-    tabela_dados.setStyle(
-        TableStyle(
+    def campo(rotulo: str, valor: str):
+        elementos.append(
+            Paragraph(
+                rotulo.upper(),
+                estilo_rotulo,
+            )
+        )
+
+        elementos.append(
+            Paragraph(
+                escapar_html(valor) or "Não informado",
+                estilo_valor_menor,
+            )
+        )
+
+        elementos.append(
+            Spacer(1, 1.2 * mm)
+        )
+
+    campo(
+        "Cliente",
+        cliente_nome or "Cliente não informado",
+    )
+
+    if cliente_documento:
+        campo(
+            "CPF/CNPJ",
+            formatar_documento(cliente_documento),
+        )
+
+    campo(
+        "Destinatário",
+        destinatario or "Não informado",
+    )
+
+    campo(
+        "Rastreio / CT-e",
+        cte or "Não informado",
+    )
+
+    campo(
+        "Nota Fiscal",
+        nf or "Não informado",
+    )
+
+    campo(
+        "Destino",
+        destino,
+    )
+
+    elementos.append(
+        Table(
+            [
+                [
+                    Paragraph(
+                        "<b>CEP</b>",
+                        estilo_rotulo,
+                    ),
+                    Paragraph(
+                        "<b>PESO</b>",
+                        estilo_rotulo,
+                    ),
+                    Paragraph(
+                        "<b>VOLUMES</b>",
+                        estilo_rotulo,
+                    ),
+                ],
+                [
+                    Paragraph(
+                        formatar_cep(cep),
+                        estilo_valor_menor,
+                    ),
+                    Paragraph(
+                        formatar_peso(peso),
+                        estilo_valor_menor,
+                    ),
+                    Paragraph(
+                        str(volumes),
+                        estilo_valor_menor,
+                    ),
+                ],
+            ],
+            colWidths=[
+                17 * mm,
+                19 * mm,
+                12 * mm,
+            ],
+            style=TableStyle(
+                [
+                    (
+                        "LINEABOVE",
+                        (0, 0),
+                        (-1, 0),
+                        0.5,
+                        colors.black,
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 1),
+                        (-1, 1),
+                        0.5,
+                        colors.black,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                ]
+            ),
+        )
+    )
+
+    elementos.append(
+        Spacer(1, 2 * mm)
+    )
+
+    modalidade_formatada = (
+        modalidade
+        if modalidade
+        else "Não informado"
+    )
+
+    valor_final = (
+        package
+        if modalidade.upper() == "PACKAGE"
+        else com
+    )
+
+    tabela_modalidade = Table(
+        [
+            [
+                Paragraph(
+                    "MODALIDADE",
+                    estilo_rotulo,
+                ),
+            ],
+            [
+                Paragraph(
+                    escapar_html(
+                        modalidade_formatada
+                    ),
+                    estilo_valor,
+                ),
+            ],
+            [
+                Paragraph(
+                    "PRAZO",
+                    estilo_rotulo,
+                ),
+            ],
+            [
+                Paragraph(
+                    escapar_html(
+                        formatar_prazo(prazo)
+                    ),
+                    estilo_valor_menor,
+                ),
+            ],
+        ],
+        colWidths=[48 * mm],
+        style=TableStyle(
             [
                 (
-                    "GRID",
+                    "BOX",
                     (0, 0),
                     (-1, -1),
-                    0.5,
-                    colors.HexColor("#D8D8D8"),
-                ),
-                (
-                    "BACKGROUND",
-                    (0, 0),
-                    (-1, 0),
-                    colors.HexColor("#F1F1F1"),
-                ),
-                (
-                    "BACKGROUND",
-                    (0, 2),
-                    (-1, 2),
-                    colors.HexColor("#F1F1F1"),
-                ),
-                (
-                    "BACKGROUND",
-                    (0, 4),
-                    (-1, 4),
-                    colors.HexColor("#F1F1F1"),
-                ),
-                (
-                    "BACKGROUND",
-                    (0, 6),
-                    (-1, 6),
-                    colors.HexColor("#F1F1F1"),
-                ),
-                (
-                    "BACKGROUND",
-                    (0, 8),
-                    (-1, 8),
-                    colors.HexColor("#F1F1F1"),
-                ),
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE",
+                    0.8,
+                    colors.black,
                 ),
                 (
                     "LEFTPADDING",
                     (0, 0),
                     (-1, -1),
-                    8,
+                    2,
                 ),
                 (
                     "RIGHTPADDING",
                     (0, 0),
                     (-1, -1),
-                    8,
+                    2,
                 ),
                 (
                     "TOPPADDING",
                     (0, 0),
                     (-1, -1),
-                    7,
+                    1.5,
                 ),
                 (
                     "BOTTOMPADDING",
                     (0, 0),
                     (-1, -1),
-                    7,
+                    1.5,
                 ),
             ]
-        )
+        ),
     )
 
-    elementos.append(tabela_dados)
-    elementos.append(Spacer(1, 8 * mm))
+    elementos.append(tabela_modalidade)
 
-    estilo_package = ParagraphStyle(
-        "Package",
-        parent=estilos["Heading3"],
-        textColor=colors.HexColor("#198754"),
+    elementos.append(
+        Spacer(1, 2 * mm)
     )
 
-    estilo_com = ParagraphStyle(
-        "Com",
-        parent=estilos["Heading3"],
-        textColor=colors.HexColor("#E31E24"),
-    )
-
-    tabela_valores = Table(
-        [
+    elementos.append(
+        Table(
             [
-                Paragraph("<b>PACKAGE</b>", estilo_package),
-                Paragraph(
-                    f"<b>{formatar_moeda(package)}</b>",
-                    estilo_package,
-                ),
+                [
+                    Paragraph(
+                        "VALOR FINAL",
+                        estilo_centralizado_negrito,
+                    )
+                ],
+                [
+                    Paragraph(
+                        formatar_moeda(valor_final),
+                        estilo_total,
+                    )
+                ],
             ],
-            [
-                Paragraph("<b>.COM</b>", estilo_com),
-                Paragraph(
-                    f"<b>{formatar_moeda(com)}</b>",
-                    estilo_com,
-                ),
-            ],
-        ],
-        colWidths=[
-            84 * mm,
-            84 * mm,
-        ],
-    )
-
-    tabela_valores.setStyle(
-        TableStyle(
-            [
-                (
-                    "BOX",
-                    (0, 0),
-                    (-1, 0),
-                    1.5,
-                    colors.HexColor("#198754"),
-                ),
-                (
-                    "BOX",
-                    (0, 1),
-                    (-1, 1),
-                    1.5,
-                    colors.HexColor("#E31E24"),
-                ),
-                (
-                    "ALIGN",
-                    (1, 0),
-                    (1, -1),
-                    "RIGHT",
-                ),
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE",
-                ),
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    12,
-                ),
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    12,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    14,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    14,
-                ),
-            ]
+            colWidths=[48 * mm],
+            style=TableStyle(
+                [
+                    (
+                        "BOX",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                        colors.black,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                ]
+            ),
         )
     )
 
-    elementos.append(tabela_valores)
-    elementos.append(Spacer(1, 10 * mm))
+    if observacoes:
+        elementos.append(
+            Spacer(1, 2 * mm)
+        )
+
+        elementos.append(
+            Paragraph(
+                "OBSERVAÇÕES",
+                estilo_rotulo,
+            )
+        )
+
+        elementos.append(
+            Paragraph(
+                escapar_html(observacoes),
+                estilo_valor_menor,
+            )
+        )
+
+    elementos.append(
+        Spacer(1, 3 * mm)
+    )
 
     elementos.append(
         Paragraph(
-            "<b>COTAÇÃO VÁLIDA EXCLUSIVAMENTE PARA ATENDIMENTO "
-            "NA UNIDADE JADLOG BRÁS</b>",
+            "CONSULTE ESTA COTAÇÃO",
+            estilo_centralizado_negrito,
+        )
+    )
+
+    url_consulta = (
+        "https://jadlogbras.vercel.app/consulta/"
+        f"?numero={numero_cotacao}"
+    )
+
+    elementos.append(
+        Spacer(1, 1 * mm)
+    )
+
+    elementos.append(
+        criar_qrcode(url_consulta)
+    )
+
+    elementos.append(
+        Spacer(1, 1 * mm)
+    )
+
+    elementos.append(
+        Paragraph(
+            escapar_html(numero_cotacao),
+            estilo_centralizado_negrito,
+        )
+    )
+
+    elementos.append(
+        Spacer(1, 2 * mm)
+    )
+
+    elementos.append(
+        criar_codigo_barras(numero_cotacao)
+    )
+
+    elementos.append(
+        Spacer(1, 2 * mm)
+    )
+
+    elementos.append(
+        Paragraph(
+            "JADLOG BRÁS",
+            estilo_centralizado_negrito,
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            "Av. Vautier, 455 - Brás - São Paulo/SP",
             estilo_centralizado,
         )
     )
 
-    elementos.append(Spacer(1, 2 * mm))
-
     elementos.append(
         Paragraph(
-            "Valores sujeitos à conferência de peso, volumes, "
-            "documentação e condições da mercadoria no momento da postagem.",
+            "Obrigado por escolher a Jadlog Brás.",
             estilo_centralizado,
         )
     )
 
-    elementos.append(Spacer(1, 2 * mm))
-
     elementos.append(
         Paragraph(
-            "AV. VAUTIER, 455 - BRÁS - SÃO PAULO/SP",
-            estilo_centralizado,
-        )
-    )
-
-    elementos.append(Spacer(1, 2 * mm))
-
-    elementos.append(
-        Paragraph(
-            "Obrigado por escolher a Jadlog Brás. Estamos à disposição.",
+            "Recibo válido exclusivamente para atendimento "
+            "na unidade Jadlog Brás.",
             estilo_centralizado,
         )
     )
@@ -457,7 +753,9 @@ async def gerar_pdf_cotacao(
 
     memoria.seek(0)
 
-    nome_arquivo = f"cotacao_{numero_cotacao}.pdf"
+    nome_arquivo = (
+        f"recibo_{numero_cotacao}.pdf"
+    )
 
     return StreamingResponse(
         memoria,
