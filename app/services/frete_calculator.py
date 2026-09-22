@@ -86,7 +86,7 @@ class FreteCalculator:
         tipo_tarifa = info_cep.get("tipo_tarifa", "Capital")
         cidade = info_cep.get("cidade", "")
         prazo = info_cep.get("prazo", 5)
-        seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
+        seguro_percentual = 0.0066
         regiao_interior = info_cep.get("regiao_interior")
 
         # Obtém o valor base (GLM) conforme a modalidade
