@@ -64,7 +64,6 @@ async def calcular_simulador(
         if valor_nf < 0:
             valor_nf = 0.0
 
-        # Calcula PACKAGE
         resultado_package = calculadora.calcular(
             cep=cep, peso=peso, modalidade="PACKAGE", valor_nf=valor_nf,
         )
@@ -75,12 +74,10 @@ async def calcular_simulador(
                 content={"success": False, "erro": resultado_package["erro"]},
             )
 
-        # Calcula .COM
         resultado_com = calculadora.calcular(
             cep=cep, peso=peso, modalidade=".COM", valor_nf=valor_nf,
         )
 
-        # Calcula DROPF
         resultado_dropf = calculadora.calcular(
             cep=cep, peso=peso, modalidade="DROPF", valor_nf=valor_nf,
         )
@@ -118,6 +115,7 @@ async def calcular_simulador(
             "dropf_mensagem": resultado_dropf.get("mensagem", ""),
             "acima_100kg": resultado_package.get("acima_100kg", False),
             "acima_100kg_mensagem": resultado_package.get("mensagem", ""),
+            "whatsapp_link": resultado_package.get("whatsapp_link", ""),
         }
 
         return {
