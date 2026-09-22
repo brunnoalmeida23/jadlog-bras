@@ -98,26 +98,8 @@ async def calcular_simulador(
                 },
             )
 
-        # Calcula DROPF
-        resultado_dropf = calculadora.calcular(
-            cep=cep,
-            peso=peso,
-            modalidade="DROPF",
-            valor_nf=valor_nf,
-        )
-
-        if resultado_dropf.get("erro"):
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "erro": resultado_dropf["erro"],
-                },
-            )
-
         dados_package = resultado_package["dados"]
         dados_com = resultado_com["dados"]
-        dados_dropf = resultado_dropf["dados"]
 
         agora = datetime.now()
 
@@ -145,7 +127,6 @@ async def calcular_simulador(
             "cliente_documento": cliente_documento.strip(),
             "package": dados_package.get("total", 0),
             "com": dados_com.get("total", 0),
-            "dropf": dados_dropf.get("total", 0),
         }
 
         return {

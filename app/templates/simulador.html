@@ -11,7 +11,7 @@
     </h2>
 
     <p class="text-muted mb-0">
-        Consulte as modalidades PACKAGE, .COM e DROPF.
+        Consulte as modalidades PACKAGE e .COM.
     </p>
 </section>
 
@@ -222,7 +222,7 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div>
                     <small class="text-muted d-block mb-1">.COM</small>
 
                     <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center">
@@ -231,18 +231,6 @@
                             <small class="text-muted d-block">Modalidade alternativa</small>
                         </div>
                         <span class="fs-4 fw-bold text-danger" id="resCom">R$ -</span>
-                    </div>
-                </div>
-
-                <div>
-                    <small class="text-muted d-block mb-1">DROPF</small>
-
-                    <div class="border border-primary rounded-3 p-3 d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>DROPF</strong>
-                            <small class="text-muted d-block">Modalidade Dropoff</small>
-                        </div>
-                        <span class="fs-4 fw-bold text-primary" id="resDropf">R$ -</span>
                     </div>
                 </div>
 
@@ -299,7 +287,6 @@
                             <option value="">Selecione</option>
                             <option value="PACKAGE">PACKAGE</option>
                             <option value=".COM">.COM</option>
-                            <option value="DROPF">DROPF (Dropoff)</option>
                         </select>
                     </div>
 
@@ -391,17 +378,6 @@
         return `${numeros.slice(0, 5)}-${numeros.slice(5)}`;
     }
 
-    function formatarDocumento(valor) {
-        const numeros = String(valor || "").replace(/\D/g, "");
-        if (numeros.length === 11) {
-            return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-        }
-        if (numeros.length === 14) {
-            return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
-        }
-        return valor || "Não informado";
-    }
-
     function dataHoraAtual() {
         return new Date().toLocaleString("pt-BR");
     }
@@ -472,7 +448,6 @@
 
             document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
             document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
-            document.getElementById("resDropf").textContent = formatarMoeda(cotacaoAtual.dropf);
 
             resultadoVazio.style.display = "none";
             resultado.style.display = "block";
@@ -557,7 +532,6 @@
                 prazo: cotacaoAtual.prazo,
                 package: cotacaoAtual.package,
                 com: cotacaoAtual.com,
-                dropf: cotacaoAtual.dropf,
                 modalidade: modalidade,
                 cte: cte,
                 nf: nf,
@@ -599,7 +573,6 @@
 
             let valorEscolhido = cotacaoAtual.package;
             if (modalidade === ".COM") valorEscolhido = cotacaoAtual.com;
-            if (modalidade === "DROPF") valorEscolhido = cotacaoAtual.dropf;
 
             const urlConsulta =
                 `${window.location.origin}/consulta/?numero=` +
