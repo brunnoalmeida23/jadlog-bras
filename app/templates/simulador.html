@@ -211,7 +211,7 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3" id="cardPackage">
                     <small class="text-muted d-block mb-1">PACKAGE</small>
 
                     <div class="border border-success rounded-3 p-3 d-flex justify-content-between align-items-center">
@@ -223,7 +223,7 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3" id="cardCom">
                     <small class="text-muted d-block mb-1">.COM</small>
 
                     <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center">
@@ -377,6 +377,8 @@
     const aviso = document.getElementById("aviso");
     const resultado = document.getElementById("resultado");
     const resultadoVazio = document.getElementById("resultadoVazio");
+    const cardPackage = document.getElementById("cardPackage");
+    const cardCom = document.getElementById("cardCom");
     const cardDropf = document.getElementById("cardDropf");
 
     const usuarioAutenticado =
@@ -463,21 +465,29 @@
             document.getElementById("resVolumes").textContent = cotacaoAtual.volumes;
             document.getElementById("resCep").textContent = formatarCep(cotacaoAtual.cep);
 
-            document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
-            document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
-
-            // DROPF
-            if (cotacaoAtual.dropf_indisponivel) {
-                cardDropf.style.display = "none";
-                aviso.textContent = "⚠️ " + cotacaoAtual.dropf_mensagem;
-                aviso.style.display = "block";
-            } else if (cotacaoAtual.acima_100kg) {
+            // Se for acima de 100kg, esconde todos os cards
+            if (cotacaoAtual.acima_100kg) {
+                cardPackage.style.display = "none";
+                cardCom.style.display = "none";
                 cardDropf.style.display = "none";
                 aviso.textContent = "⚠️ " + cotacaoAtual.acima_100kg_mensagem;
                 aviso.style.display = "block";
             } else {
-                cardDropf.style.display = "block";
-                document.getElementById("resDropf").textContent = formatarMoeda(cotacaoAtual.dropf);
+                // Mostra PACKAGE e .COM
+                cardPackage.style.display = "block";
+                cardCom.style.display = "block";
+                document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
+                document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
+
+                // DROPF
+                if (cotacaoAtual.dropf_indisponivel) {
+                    cardDropf.style.display = "none";
+                    aviso.textContent = "⚠️ " + cotacaoAtual.dropf_mensagem;
+                    aviso.style.display = "block";
+                } else {
+                    cardDropf.style.display = "block";
+                    document.getElementById("resDropf").textContent = formatarMoeda(cotacaoAtual.dropf);
+                }
             }
 
             resultadoVazio.style.display = "none";
