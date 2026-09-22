@@ -465,21 +465,18 @@
             document.getElementById("resVolumes").textContent = cotacaoAtual.volumes;
             document.getElementById("resCep").textContent = formatarCep(cotacaoAtual.cep);
 
-            // Se for acima de 100kg, esconde todos os cards
             if (cotacaoAtual.acima_100kg) {
                 cardPackage.style.display = "none";
                 cardCom.style.display = "none";
                 cardDropf.style.display = "none";
-                aviso.textContent = "⚠️ " + cotacaoAtual.acima_100kg_mensagem;
+                aviso.innerHTML = `⚠️ ${cotacaoAtual.acima_100kg_mensagem} <a href="${cotacaoAtual.whatsapp_link || '#'}" target="_blank" class="alert-link">Abrir WhatsApp</a>`;
                 aviso.style.display = "block";
             } else {
-                // Mostra PACKAGE e .COM
                 cardPackage.style.display = "block";
                 cardCom.style.display = "block";
                 document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
                 document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
 
-                // DROPF
                 if (cotacaoAtual.dropf_indisponivel) {
                     cardDropf.style.display = "none";
                     aviso.textContent = "⚠️ " + cotacaoAtual.dropf_mensagem;

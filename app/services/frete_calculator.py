@@ -11,8 +11,9 @@ from .tabela_dropf import TABELA_DROPF
 from .cep_service import CEPService
 
 
-# Número provisório (depois trocar pelo real)
-WHATSAPP_CONTATO = "(11) 1122-3344"
+# WhatsApp oficial da Jadlog Brás
+WHATSAPP_CONTATO = "(11) 98964-1426"
+WHATSAPP_LINK = "https://api.whatsapp.com/send/?phone=5511989641426"
 
 
 class FreteCalculator:
@@ -67,7 +68,6 @@ class FreteCalculator:
         if not pesos_tabela:
             return 0.0
 
-        # Arredonda pra próxima faixa da tabela
         for faixa in pesos_tabela:
             if peso <= faixa:
                 return dados_uf["pesos"][faixa]
@@ -97,6 +97,7 @@ class FreteCalculator:
                     f"Para cargas acima de 100 kg, entre em contato "
                     f"pelo WhatsApp: {WHATSAPP_CONTATO}"
                 ),
+                "whatsapp_link": WHATSAPP_LINK,
                 "dados": {
                     "cep": cep,
                     "uf": uf,
