@@ -9,8 +9,8 @@ from fastapi import APIRouter, Form
 from fastapi.responses import StreamingResponse
 
 from reportlab.graphics.barcode import code128
-from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -71,13 +71,14 @@ def formatar_moeda(valor: float) -> str:
 
 
 def formatar_peso(valor: float) -> str:
-    return (
+    texto = (
         f"{float(valor):,.3f}"
         .replace(",", "#")
         .replace(".", ",")
         .replace("#", ".")
-        + " kg"
     )
+
+    return f"{texto} kg"
 
 
 def formatar_prazo(valor: str) -> str:
@@ -108,17 +109,17 @@ def escapar_html(valor: str) -> str:
 def criar_qrcode(valor: str) -> Drawing:
     qr = QrCodeWidget(valor)
 
-    tamanho = 22 * mm
+    tamanho = 19 * mm
 
     desenho = Drawing(
         tamanho,
         tamanho,
     )
 
-    desenho.add(qr)
-
     qr.barWidth = tamanho
     qr.barHeight = tamanho
+
+    desenho.add(qr)
 
     return desenho
 
@@ -126,19 +127,19 @@ def criar_qrcode(valor: str) -> Drawing:
 def criar_codigo_barras(valor: str) -> Drawing:
     codigo = code128.Code128(
         str(valor or ""),
-        barHeight=11 * mm,
-        barWidth=0.42 * mm,
+        barHeight=9 * mm,
+        barWidth=0.36 * mm,
     )
 
-    largura = codigo.width + 4 * mm
+    largura = min(codigo.width + 4 * mm, 46 * mm)
 
     desenho = Drawing(
         largura,
-        14 * mm,
+        11 * mm,
     )
 
     codigo.x = 2 * mm
-    codigo.y = 2 * mm
+    codigo.y = 1 * mm
 
     desenho.add(codigo)
 
@@ -168,11 +169,11 @@ async def gerar_pdf_cotacao(
 
     documento = SimpleDocTemplate(
         memoria,
-        pagesize=(LARGURA_RECIBO, 400 * mm),
+        pagesize=(LARGURA_RECIBO, 170 * mm),
         rightMargin=5 * mm,
         leftMargin=5 * mm,
-        topMargin=4 * mm,
-        bottomMargin=4 * mm,
+        topMargin=3 * mm,
+        bottomMargin=3 * mm,
         title=f"Recibo {numero_cotacao}",
         author="Jadlog Brás",
     )
@@ -184,9 +185,11 @@ async def gerar_pdf_cotacao(
         parent=estilos["Normal"],
         alignment=TA_CENTER,
         fontName="Helvetica",
-        fontSize=7.5,
-        leading=9,
+        fontSize=7,
+        leading=8,
         textColor=colors.black,
+        spaceAfter=0,
+        spaceBefore=0,
     )
 
     estilo_centralizado_negrito = ParagraphStyle(
@@ -198,75 +201,72 @@ async def gerar_pdf_cotacao(
     estilo_titulo = ParagraphStyle(
         "Titulo",
         parent=estilo_centralizado_negrito,
-        fontSize=11,
-        leading=13,
-    )
-
-    estilo_unidade = ParagraphStyle(
-        "Unidade",
-        parent=estilo_centralizado_negrito,
-        fontSize=12,
-        leading=14,
+        fontSize=10,
+        leading=11,
     )
 
     estilo_rotulo = ParagraphStyle(
         "Rotulo",
         parent=estilos["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=6.5,
-        leading=7.5,
+        fontSize=6,
+        leading=7,
         textColor=colors.HexColor("#555555"),
         alignment=TA_LEFT,
+        spaceAfter=0,
+        spaceBefore=0,
     )
 
     estilo_valor = ParagraphStyle(
         "Valor",
         parent=estilos["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=9.5,
+        fontSize=7.5,
+        leading=8.5,
         textColor=colors.black,
         alignment=TA_LEFT,
+        spaceAfter=0,
+        spaceBefore=0,
     )
 
     estilo_valor_menor = ParagraphStyle(
         "ValorMenor",
         parent=estilo_valor,
-        fontSize=7.5,
-        leading=9,
+        fontSize=7,
+        leading=8,
     )
 
     estilo_total = ParagraphStyle(
         "Total",
         parent=estilo_centralizado_negrito,
-        fontSize=16,
-        leading=18,
+        fontSize=15,
+        leading=16,
     )
 
     elementos = []
 
+    # ============================================================
+    # LOGO
+    # ============================================================
+
     logo_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
         "static",
+        "img",
         "logo-jadlog.png",
     )
 
     if os.path.exists(logo_path):
         logo = Image(
             logo_path,
-            width=34 * mm,
-            height=12 * mm,
+            width=32 * mm,
+            height=10 * mm,
         )
-        logo.hAlign = "CENTER"
-        elementos.append(logo)
-        elementos.append(Spacer(1, 1.5 * mm))
 
-    elementos.append(
-        Paragraph(
-            "JADLOG BRÁS",
-            estilo_unidade,
-        )
-    )
+        logo.hAlign = "CENTER"
+
+        elementos.append(logo)
+        elementos.append(Spacer(1, 0.8 * mm))
 
     elementos.append(
         Paragraph(
@@ -276,21 +276,19 @@ async def gerar_pdf_cotacao(
     )
 
     elementos.append(
-        Spacer(1, 2 * mm)
+        Spacer(1, 1.5 * mm)
     )
+
+    # ============================================================
+    # COTAÇÃO / DATA
+    # ============================================================
 
     elementos.append(
         Table(
             [
                 [
-                    Paragraph(
-                        "<b>COTAÇÃO</b>",
-                        estilo_rotulo,
-                    ),
-                    Paragraph(
-                        "<b>DATA</b>",
-                        estilo_rotulo,
-                    ),
+                    Paragraph("COTAÇÃO", estilo_rotulo),
+                    Paragraph("DATA", estilo_rotulo),
                 ],
                 [
                     Paragraph(
@@ -298,9 +296,7 @@ async def gerar_pdf_cotacao(
                         estilo_valor,
                     ),
                     Paragraph(
-                        datetime.now().strftime(
-                            "%d/%m/%Y %H:%M"
-                        ),
+                        datetime.now().strftime("%d/%m/%Y %H:%M"),
                         estilo_valor_menor,
                     ),
                 ],
@@ -315,14 +311,14 @@ async def gerar_pdf_cotacao(
                         "LINEABOVE",
                         (0, 0),
                         (-1, 0),
-                        0.5,
+                        0.4,
                         colors.black,
                     ),
                     (
                         "LINEBELOW",
                         (0, 1),
                         (-1, 1),
-                        0.5,
+                        0.4,
                         colors.black,
                     ),
                     (
@@ -347,13 +343,13 @@ async def gerar_pdf_cotacao(
                         "TOPPADDING",
                         (0, 0),
                         (-1, -1),
-                        1,
+                        0.7,
                     ),
                     (
                         "BOTTOMPADDING",
                         (0, 0),
                         (-1, -1),
-                        1,
+                        0.7,
                     ),
                 ]
             ),
@@ -361,8 +357,12 @@ async def gerar_pdf_cotacao(
     )
 
     elementos.append(
-        Spacer(1, 2 * mm)
+        Spacer(1, 1.5 * mm)
     )
+
+    # ============================================================
+    # CAMPOS
+    # ============================================================
 
     def campo(rotulo: str, valor: str):
         elementos.append(
@@ -380,7 +380,7 @@ async def gerar_pdf_cotacao(
         )
 
         elementos.append(
-            Spacer(1, 1.2 * mm)
+            Spacer(1, 0.8 * mm)
         )
 
     campo(
@@ -414,22 +414,17 @@ async def gerar_pdf_cotacao(
         destino,
     )
 
+    # ============================================================
+    # CEP / PESO / VOLUMES
+    # ============================================================
+
     elementos.append(
         Table(
             [
                 [
-                    Paragraph(
-                        "<b>CEP</b>",
-                        estilo_rotulo,
-                    ),
-                    Paragraph(
-                        "<b>PESO</b>",
-                        estilo_rotulo,
-                    ),
-                    Paragraph(
-                        "<b>VOLUMES</b>",
-                        estilo_rotulo,
-                    ),
+                    Paragraph("CEP", estilo_rotulo),
+                    Paragraph("PESO", estilo_rotulo),
+                    Paragraph("VOLUMES", estilo_rotulo),
                 ],
                 [
                     Paragraph(
@@ -457,14 +452,14 @@ async def gerar_pdf_cotacao(
                         "LINEABOVE",
                         (0, 0),
                         (-1, 0),
-                        0.5,
+                        0.4,
                         colors.black,
                     ),
                     (
                         "LINEBELOW",
                         (0, 1),
                         (-1, 1),
-                        0.5,
+                        0.4,
                         colors.black,
                     ),
                     (
@@ -489,6 +484,99 @@ async def gerar_pdf_cotacao(
                         "TOPPADDING",
                         (0, 0),
                         (-1, -1),
+                        0.7,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0.7,
+                    ),
+                ]
+            ),
+        )
+    )
+
+    elementos.append(
+        Spacer(1, 1.5 * mm)
+    )
+
+    # ============================================================
+    # MODALIDADE / PRAZO
+    # ============================================================
+
+    modalidade_formatada = (
+        modalidade.strip()
+        if modalidade
+        else "Não informado"
+    )
+
+    if modalidade_formatada.upper() == "PACKAGE":
+        valor_final = package
+    else:
+        valor_final = com
+
+    elementos.append(
+        Table(
+            [
+                [
+                    Paragraph(
+                        "MODALIDADE",
+                        estilo_rotulo,
+                    ),
+                    Paragraph(
+                        "PRAZO",
+                        estilo_rotulo,
+                    ),
+                ],
+                [
+                    Paragraph(
+                        escapar_html(modalidade_formatada),
+                        estilo_valor,
+                    ),
+                    Paragraph(
+                        escapar_html(
+                            formatar_prazo(prazo)
+                        ),
+                        estilo_valor_menor,
+                    ),
+                ],
+            ],
+            colWidths=[
+                24 * mm,
+                24 * mm,
+            ],
+            style=TableStyle(
+                [
+                    (
+                        "BOX",
+                        (0, 0),
+                        (-1, -1),
+                        0.7,
+                        colors.black,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
                         1,
                     ),
                     (
@@ -503,95 +591,12 @@ async def gerar_pdf_cotacao(
     )
 
     elementos.append(
-        Spacer(1, 2 * mm)
+        Spacer(1, 1.5 * mm)
     )
 
-    modalidade_formatada = (
-        modalidade
-        if modalidade
-        else "Não informado"
-    )
-
-    valor_final = (
-        package
-        if modalidade.upper() == "PACKAGE"
-        else com
-    )
-
-    tabela_modalidade = Table(
-        [
-            [
-                Paragraph(
-                    "MODALIDADE",
-                    estilo_rotulo,
-                ),
-            ],
-            [
-                Paragraph(
-                    escapar_html(
-                        modalidade_formatada
-                    ),
-                    estilo_valor,
-                ),
-            ],
-            [
-                Paragraph(
-                    "PRAZO",
-                    estilo_rotulo,
-                ),
-            ],
-            [
-                Paragraph(
-                    escapar_html(
-                        formatar_prazo(prazo)
-                    ),
-                    estilo_valor_menor,
-                ),
-            ],
-        ],
-        colWidths=[48 * mm],
-        style=TableStyle(
-            [
-                (
-                    "BOX",
-                    (0, 0),
-                    (-1, -1),
-                    0.8,
-                    colors.black,
-                ),
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    2,
-                ),
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    2,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    1.5,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    1.5,
-                ),
-            ]
-        ),
-    )
-
-    elementos.append(tabela_modalidade)
-
-    elementos.append(
-        Spacer(1, 2 * mm)
-    )
+    # ============================================================
+    # VALOR FINAL
+    # ============================================================
 
     elementos.append(
         Table(
@@ -616,7 +621,7 @@ async def gerar_pdf_cotacao(
                         "BOX",
                         (0, 0),
                         (-1, -1),
-                        1.5,
+                        1.3,
                         colors.black,
                     ),
                     (
@@ -641,22 +646,26 @@ async def gerar_pdf_cotacao(
                         "TOPPADDING",
                         (0, 0),
                         (-1, -1),
-                        2,
+                        1.5,
                     ),
                     (
                         "BOTTOMPADDING",
                         (0, 0),
                         (-1, -1),
-                        2,
+                        1.5,
                     ),
                 ]
             ),
         )
     )
 
+    # ============================================================
+    # OBSERVAÇÕES
+    # ============================================================
+
     if observacoes:
         elementos.append(
-            Spacer(1, 2 * mm)
+            Spacer(1, 1.5 * mm)
         )
 
         elementos.append(
@@ -673,8 +682,12 @@ async def gerar_pdf_cotacao(
             )
         )
 
+    # ============================================================
+    # QR CODE
+    # ============================================================
+
     elementos.append(
-        Spacer(1, 3 * mm)
+        Spacer(1, 2 * mm)
     )
 
     elementos.append(
@@ -690,15 +703,15 @@ async def gerar_pdf_cotacao(
     )
 
     elementos.append(
-        Spacer(1, 1 * mm)
+        Spacer(1, 0.8 * mm)
     )
 
-    elementos.append(
-        criar_qrcode(url_consulta)
-    )
+    qr = criar_qrcode(url_consulta)
+    qr.hAlign = "CENTER"
+    elementos.append(qr)
 
     elementos.append(
-        Spacer(1, 1 * mm)
+        Spacer(1, 0.6 * mm)
     )
 
     elementos.append(
@@ -708,21 +721,29 @@ async def gerar_pdf_cotacao(
         )
     )
 
-    elementos.append(
-        Spacer(1, 2 * mm)
-    )
+    # ============================================================
+    # CÓDIGO DE BARRAS
+    # ============================================================
 
     elementos.append(
-        criar_codigo_barras(numero_cotacao)
+        Spacer(1, 1 * mm)
     )
 
+    codigo = criar_codigo_barras(numero_cotacao)
+    codigo.hAlign = "CENTER"
+    elementos.append(codigo)
+
     elementos.append(
-        Spacer(1, 2 * mm)
+        Spacer(1, 1.5 * mm)
     )
+
+    # ============================================================
+    # RODAPÉ
+    # ============================================================
 
     elementos.append(
         Paragraph(
-            "JADLOG BRÁS",
+            "<b>JADLOG BRÁS</b>",
             estilo_centralizado_negrito,
         )
     )
@@ -749,13 +770,15 @@ async def gerar_pdf_cotacao(
         )
     )
 
+    # ============================================================
+    # GERAÇÃO
+    # ============================================================
+
     documento.build(elementos)
 
     memoria.seek(0)
 
-    nome_arquivo = (
-        f"recibo_{numero_cotacao}.pdf"
-    )
+    nome_arquivo = f"recibo_{numero_cotacao}.pdf"
 
     return StreamingResponse(
         memoria,
