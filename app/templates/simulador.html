@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Simulador | JADLOG BRÁS{% endblock %}
 
@@ -11,7 +11,7 @@
     </h2>
 
     <p class="text-muted mb-0">
-        Consulte as modalidades PACKAGE e .COM.
+        Consulte as modalidades PACKAGE, .COM e DROPF.
     </p>
 </section>
 
@@ -36,10 +36,7 @@
                 <form id="formSimulador">
 
                     <div class="mb-3">
-                        <label
-                            for="cepDestino"
-                            class="form-label fw-bold"
-                        >
+                        <label for="cepDestino" class="form-label fw-bold">
                             CEP de destino
                         </label>
 
@@ -57,10 +54,7 @@
                     <div class="row g-3">
 
                         <div class="col-md-5">
-                            <label
-                                for="peso"
-                                class="form-label fw-bold"
-                            >
+                            <label for="peso" class="form-label fw-bold">
                                 Peso total (kg)
                             </label>
 
@@ -76,10 +70,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label
-                                for="volumes"
-                                class="form-label fw-bold"
-                            >
+                            <label for="volumes" class="form-label fw-bold">
                                 Volumes
                             </label>
 
@@ -95,10 +86,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label
-                                for="valorNF"
-                                class="form-label fw-bold"
-                            >
+                            <label for="valorNF" class="form-label fw-bold">
                                 Valor da NF (R$)
                             </label>
 
@@ -118,10 +106,7 @@
                     <div class="row g-3 mt-1">
 
                         <div class="col-md-6">
-                            <label
-                                for="clienteNome"
-                                class="form-label fw-bold"
-                            >
+                            <label for="clienteNome" class="form-label fw-bold">
                                 Nome do cliente
                             </label>
 
@@ -134,10 +119,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label
-                                for="clienteDocumento"
-                                class="form-label fw-bold"
-                            >
+                            <label for="clienteDocumento" class="form-label fw-bold">
                                 CPF/CNPJ
                             </label>
 
@@ -151,11 +133,7 @@
 
                     </div>
 
-                    <div
-                        id="erro"
-                        class="alert alert-danger mt-3"
-                        style="display: none;"
-                    ></div>
+                    <div id="erro" class="alert alert-danger mt-3" style="display: none;"></div>
 
                     <button
                         type="submit"
@@ -175,188 +153,114 @@
 
     <div class="col-lg-5">
 
-        <div
-            class="card border-0 shadow-sm rounded-4"
-            id="resultadoVazio"
-        >
+        <div class="card border-0 shadow-sm rounded-4" id="resultadoVazio">
             <div class="card-body p-4 text-center text-muted">
 
                 <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
 
-                <h5 class="fw-bold text-dark">
-                    Resultado da cotação
-                </h5>
+                <h5 class="fw-bold text-dark">Resultado da cotação</h5>
 
-                <p class="mb-0">
-                    Preencha os dados e clique em calcular.
-                </p>
+                <p class="mb-0">Preencha os dados e clique em calcular.</p>
 
             </div>
         </div>
 
-        <div
-            class="card border-0 shadow-sm rounded-4"
-            id="resultado"
-            style="display: none;"
-        >
+        <div class="card border-0 shadow-sm rounded-4" id="resultado" style="display: none;">
             <div class="card-body p-4">
 
                 <div class="d-flex justify-content-between align-items-start mb-3">
 
                     <div>
-                        <small class="text-muted">
-                            Número da cotação
-                        </small>
-
-                        <h5
-                            class="fw-bold mb-0"
-                            id="resNumeroCotacao"
-                        >
-                            -
-                        </h5>
+                        <small class="text-muted">Número da cotação</small>
+                        <h5 class="fw-bold mb-0" id="resNumeroCotacao">-</h5>
                     </div>
 
-                    <span class="badge text-bg-success">
-                        Cotação concluída
-                    </span>
+                    <span class="badge text-bg-success">Cotação concluída</span>
 
                 </div>
 
                 <div class="bg-light rounded-3 p-3 mb-3">
-
                     <div class="row g-3">
 
                         <div class="col-7">
-                            <small class="text-muted">
-                                Destino
-                            </small>
-
-                            <div class="fw-bold" id="resDestino">
-                                -
-                            </div>
+                            <small class="text-muted">Destino</small>
+                            <div class="fw-bold" id="resDestino">-</div>
                         </div>
 
                         <div class="col-5">
-                            <small class="text-muted">
-                                Prazo
-                            </small>
-
-                            <div class="fw-bold" id="resPrazo">
-                                -
-                            </div>
+                            <small class="text-muted">Prazo</small>
+                            <div class="fw-bold" id="resPrazo">-</div>
                         </div>
 
                         <div class="col-4">
-                            <small class="text-muted">
-                                Peso
-                            </small>
-
-                            <div class="fw-bold" id="resPeso">
-                                -
-                            </div>
+                            <small class="text-muted">Peso</small>
+                            <div class="fw-bold" id="resPeso">-</div>
                         </div>
 
                         <div class="col-4">
-                            <small class="text-muted">
-                                Volumes
-                            </small>
-
-                            <div class="fw-bold" id="resVolumes">
-                                -
-                            </div>
+                            <small class="text-muted">Volumes</small>
+                            <div class="fw-bold" id="resVolumes">-</div>
                         </div>
 
                         <div class="col-4">
-                            <small class="text-muted">
-                                CEP
-                            </small>
-
-                            <div class="fw-bold" id="resCep">
-                                -
-                            </div>
+                            <small class="text-muted">CEP</small>
+                            <div class="fw-bold" id="resCep">-</div>
                         </div>
 
                     </div>
-
                 </div>
 
                 <div class="mb-3">
-                    <small class="text-muted d-block mb-1">
-                        PACKAGE
-                    </small>
+                    <small class="text-muted d-block mb-1">PACKAGE</small>
 
                     <div class="border border-success rounded-3 p-3 d-flex justify-content-between align-items-center">
-
                         <div>
                             <strong>PACKAGE</strong>
-
-                            <small class="text-muted d-block">
-                                Modalidade padrão
-                            </small>
+                            <small class="text-muted d-block">Modalidade padrão</small>
                         </div>
+                        <span class="fs-4 fw-bold text-success" id="resPackage">R$ -</span>
+                    </div>
+                </div>
 
-                        <span
-                            class="fs-4 fw-bold text-success"
-                            id="resPackage"
-                        >
-                            R$ -
-                        </span>
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">.COM</small>
 
+                    <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>.COM</strong>
+                            <small class="text-muted d-block">Modalidade alternativa</small>
+                        </div>
+                        <span class="fs-4 fw-bold text-danger" id="resCom">R$ -</span>
                     </div>
                 </div>
 
                 <div>
-                    <small class="text-muted d-block mb-1">
-                        .COM
-                    </small>
+                    <small class="text-muted d-block mb-1">DROPF</small>
 
-                    <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center">
-
+                    <div class="border border-primary rounded-3 p-3 d-flex justify-content-between align-items-center">
                         <div>
-                            <strong>.COM</strong>
-
-                            <small class="text-muted d-block">
-                                Modalidade alternativa
-                            </small>
+                            <strong>DROPF</strong>
+                            <small class="text-muted d-block">Modalidade Dropoff</small>
                         </div>
-
-                        <span
-                            class="fs-4 fw-bold text-danger"
-                            id="resCom"
-                        >
-                            R$ -
-                        </span>
-
+                        <span class="fs-4 fw-bold text-primary" id="resDropf">R$ -</span>
                     </div>
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
 
-                    <button
-                        type="button"
-                        class="btn btn-danger"
-                        id="btnBaixarCotacao"
-                    >
+                    <button type="button" class="btn btn-danger" id="btnBaixarCotacao">
                         <i class="bi bi-file-earmark-pdf me-2"></i>
                         Baixar Cotação
                     </button>
 
                     {% if request.session.get("autenticado") %}
-                    <button
-                        type="button"
-                        class="btn btn-dark"
-                        id="btnAbrirImpressao"
-                    >
+                    <button type="button" class="btn btn-dark" id="btnAbrirImpressao">
                         <i class="bi bi-printer me-2"></i>
                         Imprimir Recibo
                     </button>
                     {% endif %}
 
-                    <button
-                        type="button"
-                        class="btn btn-outline-danger"
-                        onclick="limparResultado()"
-                    >
+                    <button type="button" class="btn btn-outline-danger" onclick="limparResultado()">
                         <i class="bi bi-arrow-counterclockwise me-2"></i>
                         Nova Cotação
                     </button>
@@ -370,126 +274,61 @@
 
 </div>
 
-
-
 {% if request.session.get("autenticado") %}
 
-<div
-    class="modal fade"
-    id="modalImpressao"
-    tabindex="-1"
-    aria-labelledby="modalImpressaoTitulo"
-    aria-hidden="true"
->
+<div class="modal fade" id="modalImpressao" tabindex="-1" aria-labelledby="modalImpressaoTitulo" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4">
             <div class="modal-header">
-                <h5
-                    class="modal-title fw-bold"
-                    id="modalImpressaoTitulo"
-                >
+                <h5 class="modal-title fw-bold" id="modalImpressaoTitulo">
                     <i class="bi bi-receipt text-danger me-2"></i>
                     Recibo de Frete
                 </h5>
 
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Fechar"
-                ></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
 
             <form id="formImpressao">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label
-                            for="modalidadeImpressao"
-                            class="form-label fw-bold"
-                        >
+                        <label for="modalidadeImpressao" class="form-label fw-bold">
                             Modalidade escolhida
                         </label>
 
-                        <select
-                            class="form-select"
-                            id="modalidadeImpressao"
-                            required
-                        >
+                        <select class="form-select" id="modalidadeImpressao" required>
                             <option value="">Selecione</option>
                             <option value="PACKAGE">PACKAGE</option>
                             <option value=".COM">.COM</option>
+                            <option value="DROPF">DROPF (Dropoff)</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label
-                            for="cteImpressao"
-                            class="form-label fw-bold"
-                        >
+                        <label for="cteImpressao" class="form-label fw-bold">
                             Rastreio / CT-e
                         </label>
-
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="cteImpressao"
-                            maxlength="80"
-                            placeholder="Digite o código de rastreio ou CT-e"
-                            required
-                        >
+                        <input type="text" class="form-control" id="cteImpressao" maxlength="80" placeholder="Digite o código de rastreio ou CT-e" required>
                     </div>
 
                     <div class="mb-3">
-                        <label
-                            for="nfImpressao"
-                            class="form-label fw-bold"
-                        >
+                        <label for="nfImpressao" class="form-label fw-bold">
                             Número da NF
                         </label>
-
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="nfImpressao"
-                            maxlength="60"
-                            placeholder="Digite o número da nota fiscal"
-                            required
-                        >
+                        <input type="text" class="form-control" id="nfImpressao" maxlength="60" placeholder="Digite o número da nota fiscal" required>
                     </div>
 
                     <div class="mb-3">
-                        <label
-                            for="destinatarioImpressao"
-                            class="form-label fw-bold"
-                        >
+                        <label for="destinatarioImpressao" class="form-label fw-bold">
                             Nome do destinatário
                         </label>
-
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="destinatarioImpressao"
-                            maxlength="120"
-                            placeholder="Nome completo ou razão social"
-                            required
-                        >
+                        <input type="text" class="form-control" id="destinatarioImpressao" maxlength="120" placeholder="Nome completo ou razão social" required>
                     </div>
 
                     <div class="mb-3">
-                        <label
-                            for="observacoesImpressao"
-                            class="form-label fw-bold"
-                        >
+                        <label for="observacoesImpressao" class="form-label fw-bold">
                             Observações
                         </label>
-
-                        <textarea
-                            class="form-control"
-                            id="observacoesImpressao"
-                            rows="3"
-                            maxlength="250"
-                            placeholder="Opcional"
-                        ></textarea>
+                        <textarea class="form-control" id="observacoesImpressao" rows="3" maxlength="250" placeholder="Opcional"></textarea>
                     </div>
 
                     <div class="alert alert-light border mb-0">
@@ -501,27 +340,16 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button
-                        type="button"
-                        class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         Cancelar
                     </button>
 
-                    <button
-                        type="button"
-                        class="btn btn-outline-danger"
-                        id="btnBaixarRecibo"
-                    >
+                    <button type="button" class="btn btn-outline-danger" id="btnBaixarRecibo">
                         <i class="bi bi-file-earmark-pdf me-2"></i>
                         Baixar recibo
                     </button>
 
-                    <button
-                        type="submit"
-                        class="btn btn-danger"
-                    >
+                    <button type="submit" class="btn btn-danger">
                         <i class="bi bi-printer me-2"></i>
                         Imprimir recibo
                     </button>
@@ -554,44 +382,23 @@
     let cotacaoAtual = null;
 
     function formatarMoeda(valor) {
-        return Number(valor).toLocaleString(
-            "pt-BR",
-            {
-                style: "currency",
-                currency: "BRL"
-            }
-        );
+        return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
 
     function formatarCep(valor) {
-        const numeros = String(valor || "")
-            .replace(/\D/g, "")
-            .slice(0, 8);
-
-        if (numeros.length <= 5) {
-            return numeros;
-        }
-
+        const numeros = String(valor || "").replace(/\D/g, "").slice(0, 8);
+        if (numeros.length <= 5) return numeros;
         return `${numeros.slice(0, 5)}-${numeros.slice(5)}`;
     }
 
     function formatarDocumento(valor) {
         const numeros = String(valor || "").replace(/\D/g, "");
-
         if (numeros.length === 11) {
-            return numeros.replace(
-                /(\d{3})(\d{3})(\d{3})(\d{2})/,
-                "$1.$2.$3-$4"
-            );
+            return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
         }
-
         if (numeros.length === 14) {
-            return numeros.replace(
-                /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-                "$1.$2.$3/$4-$5"
-            );
+            return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
         }
-
         return valor || "Não informado";
     }
 
@@ -600,23 +407,15 @@
     }
 
     function exigirLogin() {
-        if (usuarioAutenticado) {
-            return true;
-        }
-
-        alert(
-            "Faça login como funcionário para baixar ou imprimir a cotação."
-        );
-
+        if (usuarioAutenticado) return true;
+        alert("Faça login como funcionário para baixar ou imprimir a cotação.");
         window.location.href = "/login";
         return false;
     }
 
-    document
-        .getElementById("cepDestino")
-        .addEventListener("input", function () {
-            this.value = formatarCep(this.value);
-        });
+    document.getElementById("cepDestino").addEventListener("input", function () {
+        this.value = formatarCep(this.value);
+    });
 
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -631,110 +430,49 @@
         `;
 
         const dados = new URLSearchParams();
-
-        dados.append(
-            "cep_destino",
-            document.getElementById("cepDestino").value
-        );
-
-        dados.append(
-            "peso",
-            document.getElementById("peso").value
-        );
-
-        dados.append(
-            "valor_nf",
-            document.getElementById("valorNF").value
-        );
-
-        dados.append(
-            "volumes",
-            document.getElementById("volumes").value
-        );
-
-        dados.append(
-            "cliente_nome",
-            document.getElementById("clienteNome").value
-        );
-
-        dados.append(
-            "cliente_documento",
-            document.getElementById("clienteDocumento").value
-        );
+        dados.append("cep_destino", document.getElementById("cepDestino").value);
+        dados.append("peso", document.getElementById("peso").value);
+        dados.append("valor_nf", document.getElementById("valorNF").value);
+        dados.append("volumes", document.getElementById("volumes").value);
+        dados.append("cliente_nome", document.getElementById("clienteNome").value);
+        dados.append("cliente_documento", document.getElementById("clienteDocumento").value);
 
         try {
-            const response = await fetch(
-                "/simulador/calcular",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/x-www-form-urlencoded"
-                    },
-                    body: dados
-                }
-            );
+            const response = await fetch("/simulador/calcular", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: dados
+            });
 
             const retorno = await response.json();
 
             if (!response.ok || !retorno.success) {
-                throw new Error(
-                    retorno.message ||
-                    "Não foi possível calcular o frete."
-                );
+                throw new Error(retorno.message || "Não foi possível calcular o frete.");
             }
 
             cotacaoAtual = retorno.dados;
 
             cotacaoAtual.cliente_nome =
-                document.getElementById("clienteNome").value ||
-                "Cliente não informado";
-
+                document.getElementById("clienteNome").value || "Cliente não informado";
             cotacaoAtual.cliente_documento =
-                document.getElementById("clienteDocumento").value ||
-                "";
-
+                document.getElementById("clienteDocumento").value || "";
             cotacaoAtual.valor_nf =
                 Number(document.getElementById("valorNF").value);
 
-            document.getElementById(
-                "resNumeroCotacao"
-            ).textContent = cotacaoAtual.numero_cotacao;
+            document.getElementById("resNumeroCotacao").textContent = cotacaoAtual.numero_cotacao;
+            document.getElementById("resDestino").textContent = cotacaoAtual.destino;
+            document.getElementById("resPrazo").textContent = cotacaoAtual.prazo;
+            document.getElementById("resPeso").textContent =
+                Number(cotacaoAtual.peso).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 3
+                }) + " kg";
+            document.getElementById("resVolumes").textContent = cotacaoAtual.volumes;
+            document.getElementById("resCep").textContent = formatarCep(cotacaoAtual.cep);
 
-            document.getElementById(
-                "resDestino"
-            ).textContent = cotacaoAtual.destino;
-
-            document.getElementById(
-                "resPrazo"
-            ).textContent = cotacaoAtual.prazo;
-
-            document.getElementById(
-                "resPeso"
-            ).textContent =
-                Number(cotacaoAtual.peso).toLocaleString(
-                    "pt-BR",
-                    {
-                        minimumFractionDigits: 3,
-                        maximumFractionDigits: 3
-                    }
-                ) + " kg";
-
-            document.getElementById(
-                "resVolumes"
-            ).textContent = cotacaoAtual.volumes;
-
-            document.getElementById(
-                "resCep"
-            ).textContent = formatarCep(cotacaoAtual.cep);
-
-            document.getElementById(
-                "resPackage"
-            ).textContent = formatarMoeda(cotacaoAtual.package);
-
-            document.getElementById(
-                "resCom"
-            ).textContent = formatarMoeda(cotacaoAtual.com);
+            document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
+            document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
+            document.getElementById("resDropf").textContent = formatarMoeda(cotacaoAtual.dropf);
 
             resultadoVazio.style.display = "none";
             resultado.style.display = "block";
@@ -754,681 +492,375 @@
     });
 
     function abrirModalRecibo() {
-        if (!cotacaoAtual || !exigirLogin()) {
-            return;
-        }
+        if (!cotacaoAtual || !exigirLogin()) return;
 
-        const formularioImpressao =
-            document.getElementById("formImpressao");
+        const formularioImpressao = document.getElementById("formImpressao");
+        if (formularioImpressao) formularioImpressao.reset();
 
-        if (formularioImpressao) {
-            formularioImpressao.reset();
-        }
-
-        const modalElemento =
-            document.getElementById("modalImpressao");
-
+        const modalElemento = document.getElementById("modalImpressao");
         if (!modalElemento) {
             alert("Nao foi possivel abrir o formulario do recibo.");
             return;
         }
 
-        const modal =
-            bootstrap.Modal.getOrCreateInstance(modalElemento);
-
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElemento);
         modal.show();
     }
 
-    document
-        .getElementById("btnBaixarCotacao")
-        .addEventListener("click", function () {
-            abrirModalRecibo();
-        });
-    const btnAbrirImpressao =
-        document.getElementById("btnAbrirImpressao");
+    document.getElementById("btnBaixarCotacao").addEventListener("click", function () {
+        abrirModalRecibo();
+    });
 
+    const btnAbrirImpressao = document.getElementById("btnAbrirImpressao");
     if (btnAbrirImpressao) {
-        btnAbrirImpressao.addEventListener(
-            "click",
-            function () {
-                if (!cotacaoAtual || !exigirLogin()) {
-                    return;
-                }
+        btnAbrirImpressao.addEventListener("click", function () {
+            if (!cotacaoAtual || !exigirLogin()) return;
 
-                const formularioImpressao =
-                    document.getElementById("formImpressao");
+            const formularioImpressao = document.getElementById("formImpressao");
+            if (formularioImpressao) formularioImpressao.reset();
 
-                if (formularioImpressao) {
-                    formularioImpressao.reset();
-                }
-
-                const modal = new bootstrap.Modal(
-                    document.getElementById("modalImpressao")
-                );
-
-                modal.show();
-            }
-        );
+            const modal = new bootstrap.Modal(document.getElementById("modalImpressao"));
+            modal.show();
+        });
     }
 
-
-    const btnBaixarRecibo =
-        document.getElementById("btnBaixarRecibo");
-
+    const btnBaixarRecibo = document.getElementById("btnBaixarRecibo");
     if (btnBaixarRecibo) {
-        btnBaixarRecibo.addEventListener(
-            "click",
-            function () {
-                if (!cotacaoAtual || !exigirLogin()) {
-                    return;
-                }
+        btnBaixarRecibo.addEventListener("click", function () {
+            if (!cotacaoAtual || !exigirLogin()) return;
 
-                const modalidade =
-                    document.getElementById(
-                        "modalidadeImpressao"
-                    ).value;
+            const modalidade = document.getElementById("modalidadeImpressao").value;
+            const cte = document.getElementById("cteImpressao").value.trim();
+            const nf = document.getElementById("nfImpressao").value.trim();
+            const destinatario = document.getElementById("destinatarioImpressao").value.trim();
+            const observacoes = document.getElementById("observacoesImpressao").value.trim();
 
-                const cte =
-                    document.getElementById(
-                        "cteImpressao"
-                    ).value.trim();
-
-                const nf =
-                    document.getElementById(
-                        "nfImpressao"
-                    ).value.trim();
-
-                const destinatario =
-                    document.getElementById(
-                        "destinatarioImpressao"
-                    ).value.trim();
-
-                const observacoes =
-                    document.getElementById(
-                        "observacoesImpressao"
-                    ).value.trim();
-
-                if (!modalidade || !cte || !nf || !destinatario) {
-                    alert(
-                        "Preencha modalidade, rastreio/CT-e, " +
-                        "NF e destinatario."
-                    );
-                    return;
-                }
-
-                const formularioPdf =
-                    document.createElement("form");
-
-                formularioPdf.method = "POST";
-                formularioPdf.action = "/pdf/cotacao";
-                formularioPdf.style.display = "none";
-
-                const camposPdf = {
-                    numero_cotacao: cotacaoAtual.numero_cotacao,
-                    cliente_nome: cotacaoAtual.cliente_nome,
-                    cliente_documento: cotacaoAtual.cliente_documento,
-                    destino: cotacaoAtual.destino,
-                    cep: cotacaoAtual.cep,
-                    peso: cotacaoAtual.peso,
-                    volumes: cotacaoAtual.volumes,
-                    valor_nf: cotacaoAtual.valor_nf,
-                    prazo: cotacaoAtual.prazo,
-                    package: cotacaoAtual.package,
-                    com: cotacaoAtual.com,
-                    modalidade: modalidade,
-                    cte: cte,
-                    nf: nf,
-                    destinatario: destinatario,
-                    observacoes: observacoes
-                };
-
-                Object.entries(camposPdf).forEach(([nome, valor]) => {
-                    const campo = document.createElement("input");
-
-                    campo.type = "hidden";
-                    campo.name = nome;
-                    campo.value = valor ?? "";
-
-                    formularioPdf.appendChild(campo);
-                });
-
-                document.body.appendChild(formularioPdf);
-                formularioPdf.submit();
-                formularioPdf.remove();
+            if (!modalidade || !cte || !nf || !destinatario) {
+                alert("Preencha modalidade, rastreio/CT-e, NF e destinatario.");
+                return;
             }
-        );
+
+            const formularioPdf = document.createElement("form");
+            formularioPdf.method = "POST";
+            formularioPdf.action = "/pdf/cotacao";
+            formularioPdf.style.display = "none";
+
+            const camposPdf = {
+                numero_cotacao: cotacaoAtual.numero_cotacao,
+                cliente_nome: cotacaoAtual.cliente_nome,
+                cliente_documento: cotacaoAtual.cliente_documento,
+                destino: cotacaoAtual.destino,
+                cep: cotacaoAtual.cep,
+                peso: cotacaoAtual.peso,
+                volumes: cotacaoAtual.volumes,
+                valor_nf: cotacaoAtual.valor_nf,
+                prazo: cotacaoAtual.prazo,
+                package: cotacaoAtual.package,
+                com: cotacaoAtual.com,
+                dropf: cotacaoAtual.dropf,
+                modalidade: modalidade,
+                cte: cte,
+                nf: nf,
+                destinatario: destinatario,
+                observacoes: observacoes
+            };
+
+            Object.entries(camposPdf).forEach(([nome, valor]) => {
+                const campo = document.createElement("input");
+                campo.type = "hidden";
+                campo.name = nome;
+                campo.value = valor ?? "";
+                formularioPdf.appendChild(campo);
+            });
+
+            document.body.appendChild(formularioPdf);
+            formularioPdf.submit();
+            formularioPdf.remove();
+        });
     }
 
-
-    const formImpressao =
-        document.getElementById("formImpressao");
-
+    const formImpressao = document.getElementById("formImpressao");
     if (formImpressao) {
-        formImpressao.addEventListener(
-            "submit",
-            function (event) {
-                event.preventDefault();
+        formImpressao.addEventListener("submit", function (event) {
+            event.preventDefault();
 
-                if (!cotacaoAtual || !exigirLogin()) {
-                    return;
-                }
+            if (!cotacaoAtual || !exigirLogin()) return;
 
-                const modalidade =
-                    document.getElementById(
-                        "modalidadeImpressao"
-                    ).value;
+            const modalidade = document.getElementById("modalidadeImpressao").value;
+            const cte = document.getElementById("cteImpressao").value.trim();
+            const nf = document.getElementById("nfImpressao").value.trim();
+            const destinatario = document.getElementById("destinatarioImpressao").value.trim();
+            const observacoes = document.getElementById("observacoesImpressao").value.trim();
 
-                const cte =
-                    document.getElementById(
-                        "cteImpressao"
-                    ).value.trim();
+            if (!modalidade || !cte || !nf || !destinatario) {
+                alert("Preencha modalidade, rastreio/CT-e, NF e destinatário.");
+                return;
+            }
 
-                const nf =
-                    document.getElementById(
-                        "nfImpressao"
-                    ).value.trim();
+            let valorEscolhido = cotacaoAtual.package;
+            if (modalidade === ".COM") valorEscolhido = cotacaoAtual.com;
+            if (modalidade === "DROPF") valorEscolhido = cotacaoAtual.dropf;
 
-                const destinatario =
-                    document.getElementById(
-                        "destinatarioImpressao"
-                    ).value.trim();
+            const urlConsulta =
+                `${window.location.origin}/consulta/?numero=` +
+                encodeURIComponent(cotacaoAtual.numero_cotacao);
 
-                const observacoes =
-                    document.getElementById(
-                        "observacoesImpressao"
-                    ).value.trim();
+            const janela = window.open("", "_blank", "width=420,height=850");
+            if (!janela) {
+                alert("O navegador bloqueou a impressão. Permita pop-ups para este site.");
+                return;
+            }
 
-                if (!modalidade || !cte || !nf || !destinatario) {
-                    alert(
-                        "Preencha modalidade, rastreio/CT-e, " +
-                        "NF e destinatário."
-                    );
-                    return;
-                }
+            const clienteSeguro = escaparHtml(cotacaoAtual.cliente_nome || "Cliente não informado");
+            const destinatarioSeguro = escaparHtml(destinatario);
+            const cteSeguro = escaparHtml(cte);
+            const nfSeguro = escaparHtml(nf);
+            const observacoesSeguras = escaparHtml(observacoes);
 
-                const valorEscolhido =
-                    modalidade === "PACKAGE"
-                        ? cotacaoAtual.package
-                        : cotacaoAtual.com;
-
-                const urlConsulta =
-                    `${window.location.origin}/consulta/?numero=` +
-                    encodeURIComponent(cotacaoAtual.numero_cotacao);
-
-                const janela = window.open(
-                    "",
-                    "_blank",
-                    "width=420,height=850"
-                );
-
-                if (!janela) {
-                    alert(
-                        "O navegador bloqueou a impressão. " +
-                        "Permita pop-ups para este site."
-                    );
-                    return;
-                }
-
-                const clienteSeguro = escaparHtml(
-                    cotacaoAtual.cliente_nome ||
-                    "Cliente não informado"
-                );
-
-                const destinatarioSeguro =
-                    escaparHtml(destinatario);
-
-                const cteSeguro = escaparHtml(cte);
-                const nfSeguro = escaparHtml(nf);
-                const observacoesSeguras =
-                    escaparHtml(observacoes);
-
-                janela.document.write(`
-                    <!DOCTYPE html>
-                    <html lang="pt-BR">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta
-                            name="viewport"
-                            content="width=device-width, initial-scale=1"
-                        >
-
-                        <title>
-                            Recibo ${cotacaoAtual.numero_cotacao}
-                        </title>
-
-                        <style>
-                            @page {
-                                size: 58mm auto;
-                                margin: 0;
-                            }
-
-                            * {
-                                box-sizing: border-box;
-                            }
-
-                            html {
-                                width: 58mm;
-                                margin: 0;
-                                padding: 0;
-                                background: #ffffff;
-                            }
-
+            janela.document.write(`
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>Recibo ${cotacaoAtual.numero_cotacao}</title>
+                    <style>
+                        @page { size: 58mm auto; margin: 0; }
+                        * { box-sizing: border-box; }
+                        html { width: 58mm; margin: 0; padding: 0; background: #ffffff; }
+                        body {
+                            width: 48mm;
+                            margin: 0 4mm 0 6mm;
+                            padding: 0;
+                            overflow: hidden;
+                            color: #000000;
+                            background: #ffffff;
+                            font-family: Arial, Helvetica, sans-serif;
+                            font-size: 9px;
+                            line-height: 1.25;
+                        }
+                        .centro { width: 100%; text-align: center; }
+                        .logo {
+                            display: block;
+                            width: 31mm;
+                            max-width: 100%;
+                            max-height: 12mm;
+                            object-fit: contain;
+                            margin: 0 auto 1.5mm;
+                        }
+                        .unidade { width: 100%; margin: 0; font-size: 13px; font-weight: 700; text-align: center; }
+                        .titulo { width: 100%; margin: 1mm 0 2mm; font-size: 11px; font-weight: 700; text-align: center; }
+                        .linha { display: block; width: 100%; border-top: 1px dashed #000000; margin: 2mm 0; }
+                        .campo { display: block; width: 100%; margin: 0 0 1.8mm; padding: 0; text-align: left; }
+                        .rotulo {
+                            display: block;
+                            width: 100%;
+                            font-size: 7.5px;
+                            font-weight: normal;
+                            text-transform: uppercase;
+                            white-space: normal;
+                        }
+                        .conteudo {
+                            display: block;
+                            width: 100%;
+                            margin-top: 0.4mm;
+                            font-size: 9.5px;
+                            font-weight: 700;
+                            white-space: normal;
+                            overflow-wrap: break-word;
+                            text-align: left;
+                        }
+                        .duas-colunas {
+                            display: grid;
+                            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                            gap: 2mm;
+                            width: 100%;
+                        }
+                        .duas-colunas .campo { width: auto; min-width: 0; }
+                        .observacoes {
+                            display: block;
+                            width: 100%;
+                            white-space: pre-wrap;
+                            overflow-wrap: break-word;
+                            text-align: left;
+                        }
+                        .valor {
+                            width: 100%;
+                            border: 2px solid #000000;
+                            margin: 2mm 0;
+                            padding: 2.5mm 1mm;
+                            text-align: center;
+                        }
+                        .valor-label { display: block; font-size: 8px; font-weight: 700; }
+                        .valor-total { display: block; margin-top: 1mm; font-size: 17px; font-weight: 700; }
+                        #qrcode { display: flex; width: 100%; justify-content: center; margin: 2mm 0; }
+                        #qrcode img, #qrcode canvas { width: 20mm !important; height: 20mm !important; }
+                        #codigoBarras {
+                            display: block;
+                            width: 42mm !important;
+                            max-width: 100%;
+                            height: 12mm;
+                            margin: 0 auto;
+                        }
+                        .numero-codigo { width: 100%; margin-top: 1mm; font-size: 8px; font-weight: 700; text-align: center; }
+                        .rodape { width: 100%; margin-top: 2mm; text-align: center; font-size: 7.5px; line-height: 1.35; }
+                        .agradecimento { margin-top: 2mm; font-size: 8px; font-weight: 700; }
+                        @media print {
+                            html { width: 58mm; margin: 0; padding: 0; }
                             body {
                                 width: 48mm;
                                 margin: 0 4mm 0 6mm;
                                 padding: 0;
                                 overflow: hidden;
-                                color: #000000;
-                                background: #ffffff;
-                                font-family: Arial, Helvetica, sans-serif;
-                                font-size: 9px;
-                                line-height: 1.25;
+                                print-color-adjust: exact;
+                                -webkit-print-color-adjust: exact;
                             }
-
-                            .centro {
-                                width: 100%;
-                                text-align: center;
-                            }
-
-                            .logo {
-                                display: block;
-                                width: 31mm;
-                                max-width: 100%;
-                                max-height: 12mm;
-                                object-fit: contain;
-                                margin: 0 auto 1.5mm;
-                            }
-
-                            .unidade {
-                                width: 100%;
-                                margin: 0;
-                                font-size: 13px;
-                                font-weight: 700;
-                                text-align: center;
-                            }
-
-                            .titulo {
-                                width: 100%;
-                                margin: 1mm 0 2mm;
-                                font-size: 11px;
-                                font-weight: 700;
-                                text-align: center;
-                            }
-
-                            .linha {
-                                display: block;
-                                width: 100%;
-                                border-top: 1px dashed #000000;
-                                margin: 2mm 0;
-                            }
-
-                            .campo {
-                                display: block;
-                                width: 100%;
-                                margin: 0 0 1.8mm;
-                                padding: 0;
-                                overflow: visible;
-                                text-align: left;
-                            }
-
-                            .rotulo {
-                                display: block;
-                                width: 100%;
-                                font-size: 7.5px;
-                                font-weight: normal;
-                                text-transform: uppercase;
-                                white-space: normal;
-                            }
-
-                            .conteudo {
-                                display: block;
-                                width: 100%;
-                                margin-top: 0.4mm;
-                                font-size: 9.5px;
-                                font-weight: 700;
-                                white-space: normal;
-                                overflow-wrap: break-word;
-                                word-break: normal;
-                                text-align: left;
-                            }
-
-                            .duas-colunas {
-                                display: grid;
-                                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-                                gap: 2mm;
-                                width: 100%;
-                            }
-
-                            .duas-colunas .campo {
-                                width: auto;
-                                min-width: 0;
-                            }
-
-                            .observacoes {
-                                display: block;
-                                width: 100%;
-                                white-space: pre-wrap;
-                                overflow-wrap: break-word;
-                                word-break: normal;
-                                text-align: left;
-                            }
-
-                            .valor {
-                                width: 100%;
-                                border: 2px solid #000000;
-                                margin: 2mm 0;
-                                padding: 2.5mm 1mm;
-                                text-align: center;
-                            }
-
-                            .valor-label {
-                                display: block;
-                                font-size: 8px;
-                                font-weight: 700;
-                            }
-
-                            .valor-total {
-                                display: block;
-                                margin-top: 1mm;
-                                font-size: 17px;
-                                font-weight: 700;
-                            }
-
-                            #qrcode {
-                                display: flex;
-                                width: 100%;
-                                justify-content: center;
-                                margin: 2mm 0;
-                            }
-
-                            #qrcode img,
-                            #qrcode canvas {
-                                width: 20mm !important;
-                                height: 20mm !important;
-                            }
-
-                            #codigoBarras {
-                                display: block;
-                                width: 42mm !important;
-                                max-width: 100%;
-                                height: 12mm;
-                                margin: 0 auto;
-                            }
-
-                            .numero-codigo {
-                                width: 100%;
-                                margin-top: 1mm;
-                                font-size: 8px;
-                                font-weight: 700;
-                                text-align: center;
-                            }
-
-                            .rodape {
-                                width: 100%;
-                                margin-top: 2mm;
-                                text-align: center;
-                                font-size: 7.5px;
-                                line-height: 1.35;
-                            }
-
-                            .agradecimento {
-                                margin-top: 2mm;
-                                font-size: 8px;
-                                font-weight: 700;
-                            }
-
-                            @media print {
-                                html {
-                                    width: 58mm;
-                                    margin: 0;
-                                    padding: 0;
-                                }
-
-                                body {
-                                    width: 48mm;
-                                    margin: 0 4mm 0 6mm;
-                                    padding: 0;
-                                    overflow: hidden;
-                                    print-color-adjust: exact;
-                                    -webkit-print-color-adjust: exact;
-                                }
-                            }
-                        </style>
-                    </head>
-
-                    <body>
-                        <header class="centro">
-                            <img
-                                class="logo"
-                                src="${window.location.origin}/static/img/logo-jadlog.png"
-                                alt="Jadlog Brás"
-                            >
-
-                            <div class="unidade">
-                                JADLOG BRÁS
-                            </div>
-
-                            <div class="titulo">
-                                RECIBO DE FRETE
-                            </div>
-                        </header>
-
-                        <div class="linha"></div>
-
-                        <div class="campo">
-                            <span class="rotulo">Cotação</span>
-                            <span class="conteudo">
-                                ${cotacaoAtual.numero_cotacao}
-                            </span>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">Data</span>
-                            <span class="conteudo">
-                                ${dataHoraAtual()}
-                            </span>
-                        </div>
-
-                        <div class="linha"></div>
-
-                        <div class="campo">
-                            <span class="rotulo">Cliente</span>
-                            <span class="conteudo">
-                                ${clienteSeguro}
-                            </span>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">
-                                Nome do destinatário
-                            </span>
-                            <span class="conteudo">
-                                ${destinatarioSeguro}
-                            </span>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">
-                                Rastreio / CT-e
-                            </span>
-                            <span class="conteudo">
-                                ${cteSeguro}
-                            </span>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">Nota Fiscal</span>
-                            <span class="conteudo">
-                                ${nfSeguro}
-                            </span>
-                        </div>
-
-                        <div class="linha"></div>
-
-                        <div class="campo">
-                            <span class="rotulo">Destino</span>
-                            <span class="conteudo">
-                                ${cotacaoAtual.destino}
-                            </span>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">CEP</span>
-                            <span class="conteudo">
-                                ${formatarCep(cotacaoAtual.cep)}
-                            </span>
-                        </div>
-
-                        <div class="duas-colunas">
-                            <div class="campo">
-                                <span class="rotulo">Peso</span>
-                                <span class="conteudo">
-                                    ${Number(
-                                        cotacaoAtual.peso
-                                    ).toLocaleString(
-                                        "pt-BR",
-                                        {
-                                            minimumFractionDigits: 3,
-                                            maximumFractionDigits: 3
-                                        }
-                                    )} kg
-                                </span>
-                            </div>
-
-                            <div class="campo">
-                                <span class="rotulo">Volumes</span>
-                                <span class="conteudo">
-                                    ${cotacaoAtual.volumes}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="campo">
-                            <span class="rotulo">Modalidade</span>
-                            <span class="conteudo">
-                                ${modalidade}
-                            </span>
-                        </div>
-
-                        ${
-                            observacoesSeguras
-                                ? `
-                                    <div class="campo">
-                                        <span class="rotulo">
-                                            Observações
-                                        </span>
-                                        <span class="conteudo observacoes">
-                                            ${observacoesSeguras}
-                                        </span>
-                                    </div>
-                                `
-                                : ""
                         }
+                    </style>
+                </head>
+                <body>
+                    <header class="centro">
+                        <img class="logo" src="${window.location.origin}/static/img/logo-jadlog.png" alt="Jadlog Brás">
+                        <div class="unidade">JADLOG BRÁS</div>
+                        <div class="titulo">RECIBO DE FRETE</div>
+                    </header>
 
-                        <div class="valor">
-                            <span class="valor-label">
-                                VALOR FINAL
-                            </span>
-                            <span class="valor-total">
-                                ${formatarMoeda(valorEscolhido)}
-                            </span>
+                    <div class="linha"></div>
+
+                    <div class="campo">
+                        <span class="rotulo">Cotação</span>
+                        <span class="conteudo">${cotacaoAtual.numero_cotacao}</span>
+                    </div>
+
+                    <div class="campo">
+                        <span class="rotulo">Data</span>
+                        <span class="conteudo">${dataHoraAtual()}</span>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="campo">
+                        <span class="rotulo">Cliente</span>
+                        <span class="conteudo">${clienteSeguro}</span>
+                    </div>
+
+                    <div class="campo">
+                        <span class="rotulo">Nome do destinatário</span>
+                        <span class="conteudo">${destinatarioSeguro}</span>
+                    </div>
+
+                    <div class="campo">
+                        <span class="rotulo">Rastreio / CT-e</span>
+                        <span class="conteudo">${cteSeguro}</span>
+                    </div>
+
+                    <div class="campo">
+                        <span class="rotulo">Nota Fiscal</span>
+                        <span class="conteudo">${nfSeguro}</span>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div class="campo">
+                        <span class="rotulo">Destino</span>
+                        <span class="conteudo">${cotacaoAtual.destino}</span>
+                    </div>
+
+                    <div class="campo">
+                        <span class="rotulo">CEP</span>
+                        <span class="conteudo">${formatarCep(cotacaoAtual.cep)}</span>
+                    </div>
+
+                    <div class="duas-colunas">
+                        <div class="campo">
+                            <span class="rotulo">Peso</span>
+                            <span class="conteudo">${Number(cotacaoAtual.peso).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg</span>
                         </div>
 
-                        <div class="linha"></div>
+                        <div class="campo">
+                            <span class="rotulo">Volumes</span>
+                            <span class="conteudo">${cotacaoAtual.volumes}</span>
+                        </div>
+                    </div>
 
-                        <div id="qrcode"></div>
+                    <div class="campo">
+                        <span class="rotulo">Modalidade</span>
+                        <span class="conteudo">${modalidade}</span>
+                    </div>
 
-                        <div class="centro">
-                            <svg id="codigoBarras"></svg>
+                    ${observacoesSeguras ? `
+                        <div class="campo">
+                            <span class="rotulo">Observações</span>
+                            <span class="conteudo observacoes">${observacoesSeguras}</span>
+                        </div>
+                    ` : ""}
+
+                    <div class="valor">
+                        <span class="valor-label">VALOR FINAL</span>
+                        <span class="valor-total">${formatarMoeda(valorEscolhido)}</span>
+                    </div>
+
+                    <div class="linha"></div>
+
+                    <div id="qrcode"></div>
+
+                    <div class="centro">
+                        <svg id="codigoBarras"></svg>
+                    </div>
+
+                    <div class="numero-codigo">${cotacaoAtual.numero_cotacao}</div>
+
+                    <div class="linha"></div>
+
+                    <footer class="rodape">
+                        <strong>JADLOG BRÁS</strong><br>
+                        Av. Vautier, 455<br>
+                        Brás - São Paulo/SP
+
+                        <div class="agradecimento">
+                            Obrigado por escolher a Jadlog Brás.
                         </div>
 
-                        <div class="numero-codigo">
-                            ${cotacaoAtual.numero_cotacao}
+                        <div>
+                            Recibo válido exclusivamente para
+                            atendimento na unidade Jadlog Brás.
                         </div>
+                    </footer>
 
-                        <div class="linha"></div>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
 
-                        <footer class="rodape">
-                            <strong>JADLOG BRÁS</strong><br>
-                            Av. Vautier, 455<br>
-                            Brás - São Paulo/SP
+                    <script>
+                        window.addEventListener("load", function () {
+                            new QRCode(document.getElementById("qrcode"), {
+                                text: ${JSON.stringify(urlConsulta)},
+                                width: 150,
+                                height: 150,
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
 
-                            <div class="agradecimento">
-                                Obrigado por escolher a Jadlog Brás.
-                            </div>
+                            JsBarcode("#codigoBarras", ${JSON.stringify(cotacaoAtual.numero_cotacao)}, {
+                                format: "CODE128",
+                                displayValue: false,
+                                margin: 0,
+                                height: 42,
+                                width: 1.25
+                            });
 
-                            <div>
-                                Recibo válido exclusivamente para
-                                atendimento na unidade Jadlog Brás.
-                            </div>
-                        </footer>
+                            setTimeout(function () { window.print(); }, 1000);
+                        });
+                    <\/script>
+                </body>
+                </html>
+            `);
 
-                        <script
-                            src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-                        ><\/script>
+            janela.document.close();
 
-                        <script
-                            src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"
-                        ><\/script>
-
-                        <script>
-                            window.addEventListener(
-                                "load",
-                                function () {
-                                    new QRCode(
-                                        document.getElementById("qrcode"),
-                                        {
-                                            text:
-                                                ${JSON.stringify(urlConsulta)},
-                                            width: 150,
-                                            height: 150,
-                                            correctLevel:
-                                                QRCode.CorrectLevel.M
-                                        }
-                                    );
-
-                                    JsBarcode(
-                                        "#codigoBarras",
-                                        ${JSON.stringify(
-                                            cotacaoAtual.numero_cotacao
-                                        )},
-                                        {
-                                            format: "CODE128",
-                                            displayValue: false,
-                                            margin: 0,
-                                            height: 42,
-                                            width: 1.25
-                                        }
-                                    );
-
-                                    setTimeout(
-                                        function () {
-                                            window.print();
-                                        },
-                                        1000
-                                    );
-                                }
-                            );
-                        <\/script>
-                    </body>
-                    </html>
-                `);
-
-                janela.document.close();
-
-                const modalElemento =
-                    document.getElementById("modalImpressao");
-
-                const modal =
-                    bootstrap.Modal.getInstance(modalElemento);
-
-                if (modal) {
-                    modal.hide();
-                }
-            }
-        );
+            const modalElemento = document.getElementById("modalImpressao");
+            const modal = bootstrap.Modal.getInstance(modalElemento);
+            if (modal) modal.hide();
+        });
     }
-
 
     function escaparHtml(valor) {
         return String(valor || "")
@@ -1439,19 +871,14 @@
             .replaceAll("'", "&#039;");
     }
 
-
     function limparResultado() {
         form.reset();
         cotacaoAtual = null;
 
         document.getElementById("volumes").value = "1";
 
-        const formularioImpressao =
-            document.getElementById("formImpressao");
-
-        if (formularioImpressao) {
-            formularioImpressao.reset();
-        }
+        const formularioImpressao = document.getElementById("formImpressao");
+        if (formularioImpressao) formularioImpressao.reset();
 
         erro.style.display = "none";
         resultado.style.display = "none";
