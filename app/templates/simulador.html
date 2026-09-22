@@ -11,7 +11,7 @@
     </h2>
 
     <p class="text-muted mb-0">
-        Consulte as modalidades PACKAGE e .COM.
+        Consulte as modalidades PACKAGE, .COM e DROPF.
     </p>
 </section>
 
@@ -134,6 +134,7 @@
                     </div>
 
                     <div id="erro" class="alert alert-danger mt-3" style="display: none;"></div>
+                    <div id="aviso" class="alert alert-warning mt-3" style="display: none;"></div>
 
                     <button
                         type="submit"
@@ -222,7 +223,7 @@
                     </div>
                 </div>
 
-                <div>
+                <div class="mb-3">
                     <small class="text-muted d-block mb-1">.COM</small>
 
                     <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center">
@@ -231,6 +232,18 @@
                             <small class="text-muted d-block">Modalidade alternativa</small>
                         </div>
                         <span class="fs-4 fw-bold text-danger" id="resCom">R$ -</span>
+                    </div>
+                </div>
+
+                <div id="cardDropf">
+                    <small class="text-muted d-block mb-1">DROPF</small>
+
+                    <div class="border border-primary rounded-3 p-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>DROPF</strong>
+                            <small class="text-muted d-block">Modalidade Dropoff</small>
+                        </div>
+                        <span class="fs-4 fw-bold text-primary" id="resDropf">R$ -</span>
                     </div>
                 </div>
 
@@ -287,6 +300,7 @@
                             <option value="">Selecione</option>
                             <option value="PACKAGE">PACKAGE</option>
                             <option value=".COM">.COM</option>
+                            <option value="DROPF">DROPF</option>
                         </select>
                     </div>
 
@@ -360,8 +374,10 @@
     const form = document.getElementById("formSimulador");
     const btnCalcular = document.getElementById("btnCalcular");
     const erro = document.getElementById("erro");
+    const aviso = document.getElementById("aviso");
     const resultado = document.getElementById("resultado");
     const resultadoVazio = document.getElementById("resultadoVazio");
+    const cardDropf = document.getElementById("cardDropf");
 
     const usuarioAutenticado =
         {{ "true" if request.session.get("autenticado") else "false" }};
@@ -397,6 +413,7 @@
         event.preventDefault();
 
         erro.style.display = "none";
+        aviso.style.display = "none";
         resultado.style.display = "none";
 
         btnCalcular.disabled = true;
@@ -448,6 +465,20 @@
 
             document.getElementById("resPackage").textContent = formatarMoeda(cotacaoAtual.package);
             document.getElementById("resCom").textContent = formatarMoeda(cotacaoAtual.com);
+
+            // DROPF
+            if (cotacaoAtual.dropf_indisponivel) {
+                cardDropf.style.display = "none";
+                aviso.textContent = "⚠️ " + cotacaoAtual.dropf_mensagem;
+                aviso.style.display = "block";
+            } else if (cotacaoAtual.acima_100kg) {
+                cardDropf.style.display = "none";
+                aviso.textContent = "⚠️ " + cotacaoAtual.acima_100kg_mensagem;
+                aviso.style.display = "block";
+            } else {
+                cardDropf.style.display = "block";
+                document.getElementById("resDropf").textContent = formatarMoeda(cotacaoAtual.dropf);
+            }
 
             resultadoVazio.style.display = "none";
             resultado.style.display = "block";
@@ -532,6 +563,7 @@
                 prazo: cotacaoAtual.prazo,
                 package: cotacaoAtual.package,
                 com: cotacaoAtual.com,
+                dropf: cotacaoAtual.dropf,
                 modalidade: modalidade,
                 cte: cte,
                 nf: nf,
@@ -573,6 +605,7 @@
 
             let valorEscolhido = cotacaoAtual.package;
             if (modalidade === ".COM") valorEscolhido = cotacaoAtual.com;
+            if (modalidade === "DROPF") valorEscolhido = cotacaoAtual.dropf;
 
             const urlConsulta =
                 `${window.location.origin}/consulta/?numero=` +
@@ -854,6 +887,7 @@
         if (formularioImpressao) formularioImpressao.reset();
 
         erro.style.display = "none";
+        aviso.style.display = "none";
         resultado.style.display = "none";
         resultadoVazio.style.display = "block";
     }

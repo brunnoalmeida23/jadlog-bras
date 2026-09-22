@@ -66,40 +66,26 @@ async def calcular_simulador(
 
         # Calcula PACKAGE
         resultado_package = calculadora.calcular(
-            cep=cep,
-            peso=peso,
-            modalidade="PACKAGE",
-            valor_nf=valor_nf,
+            cep=cep, peso=peso, modalidade="PACKAGE", valor_nf=valor_nf,
         )
 
         if resultado_package.get("erro"):
             return JSONResponse(
                 status_code=400,
-                content={
-                    "success": False,
-                    "erro": resultado_package["erro"],
-                },
+                content={"success": False, "erro": resultado_package["erro"]},
             )
 
         # Calcula .COM
         resultado_com = calculadora.calcular(
-            cep=cep,
-            peso=peso,
-            modalidade=".COM",
-            valor_nf=valor_nf,
+            cep=cep, peso=peso, modalidade=".COM", valor_nf=valor_nf,
         )
 
-        if resultado_com.get("erro"):
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "erro": resultado_com["erro"],
-                },
-            )
+        # Calcula DROPF
+        resultado_dropf = calculadora.calcular(
+            cep=cep, peso=peso, modalidade="DROPF", valor_nf=valor_nf,
+        )
 
         dados_package = resultado_package["dados"]
-        dados_com = resultado_com["dados"]
 
         agora = datetime.now()
 
@@ -126,7 +112,12 @@ async def calcular_simulador(
             "cliente_nome": cliente_nome.strip(),
             "cliente_documento": cliente_documento.strip(),
             "package": dados_package.get("total", 0),
-            "com": dados_com.get("total", 0),
+            "com": resultado_com.get("dados", {}).get("total", 0),
+            "dropf": resultado_dropf.get("dados", {}).get("total", 0),
+            "dropf_indisponivel": resultado_dropf.get("dropf_indisponivel", False),
+            "dropf_mensagem": resultado_dropf.get("mensagem", ""),
+            "acima_100kg": resultado_package.get("acima_100kg", False),
+            "acima_100kg_mensagem": resultado_package.get("mensagem", ""),
         }
 
         return {
@@ -137,8 +128,5 @@ async def calcular_simulador(
     except Exception as exc:
         return JSONResponse(
             status_code=500,
-            content={
-                "success": False,
-                "erro": str(exc),
-            },
+            content={"success": False, "erro": str(exc)},
         )

@@ -7,7 +7,12 @@ from .tabela_cliente_final import (
     LUCRO_ACIMA_30,
     GLM_ACIMA_30,
 )
+from .tabela_dropf import TABELA_DROPF
 from .cep_service import CEPService
+
+
+# Número provisório (depois trocar pelo real)
+WHATSAPP_CONTATO = "(11) 1122-3344"
 
 
 class FreteCalculator:
@@ -16,6 +21,7 @@ class FreteCalculator:
         self.valores_interior = VALORES_ATE_30_INTERIOR
         self.lucro_acima_30 = LUCRO_ACIMA_30
         self.glm_acima_30 = GLM_ACIMA_30
+        self.tabela_dropf = TABELA_DROPF
 
     def _arredondar_faixa(self, peso: float) -> int:
         """Arredonda o peso pra próxima faixa de 10 (35->40, 45->50)."""
@@ -24,11 +30,11 @@ class FreteCalculator:
             faixa = 100
         return faixa
 
-    def _obter_frete_base(self, uf: str, tipo_tarifa: str, peso: float) -> float:
+    def _obter_frete_package_com(self, uf: str, tipo_tarifa: str, peso: float) -> float:
+        """Frete base para PACKAGE e .COM (são iguais)."""
         tipo = str(tipo_tarifa or "").strip()
 
         if peso <= 30:
-            # Arredonda pra próxima faixa até 30
             if peso <= 1:
                 peso_faixa = 1
             elif peso <= 5:
@@ -45,12 +51,28 @@ class FreteCalculator:
             else:
                 return self.valores_capital.get(peso_faixa, 0.0)
         else:
-            # Acima de 30kg: GLM[UF] + LUCRO[faixa]
             faixa = self._arredondar_faixa(peso)
             glm_uf = self.glm_acima_30.get(uf, self.glm_acima_30.get("SP", {}))
             glm = glm_uf.get(faixa, 0.0)
             lucro = self.lucro_acima_30.get(faixa, 0.0)
             return glm + lucro
+
+    def _obter_frete_dropf(self, uf: str, peso: float) -> float:
+        """Frete base para DROPF (tabela própria, só capital)."""
+        dados_uf = self.tabela_dropf.get(uf)
+        if not dados_uf:
+            return 0.0
+
+        pesos_tabela = sorted(dados_uf.get("pesos", {}).keys())
+        if not pesos_tabela:
+            return 0.0
+
+        # Arredonda pra próxima faixa da tabela
+        for faixa in pesos_tabela:
+            if peso <= faixa:
+                return dados_uf["pesos"][faixa]
+
+        return dados_uf["pesos"][pesos_tabela[-1]]
 
     def calcular(self, cep: str, peso: float, modalidade: str = "PACKAGE", valor_nf: float = 0.0) -> dict:
         """Calcula o frete baseado no CEP, peso, modalidade e valor da NF."""
@@ -66,8 +88,49 @@ class FreteCalculator:
         prazo = info_cep.get("prazo", 5)
         seguro_percentual = 0.0066
 
-        # Frete base (PACKAGE e .COM são IGUAIS)
-        frete_base = self._obter_frete_base(uf, tipo_tarifa, peso)
+        # Bloqueio acima de 100kg
+        if peso > 100:
+            return {
+                "success": True,
+                "acima_100kg": True,
+                "mensagem": (
+                    f"Para cargas acima de 100 kg, entre em contato "
+                    f"pelo WhatsApp: {WHATSAPP_CONTATO}"
+                ),
+                "dados": {
+                    "cep": cep,
+                    "uf": uf,
+                    "cidade": cidade,
+                    "tipo_tarifa": tipo_tarifa,
+                    "prazo": prazo,
+                    "peso": peso,
+                    "modalidade": modalidade,
+                    "valor_nf": valor_nf,
+                },
+            }
+
+        modalidade_norm = str(modalidade or "").strip().upper()
+
+        if modalidade_norm == "DROPF":
+            if tipo_tarifa.startswith("Interior"):
+                return {
+                    "success": True,
+                    "dropf_indisponivel": True,
+                    "mensagem": "DROPF disponível apenas para capitais. Use PACKAGE ou .COM.",
+                    "dados": {
+                        "cep": cep,
+                        "uf": uf,
+                        "cidade": cidade,
+                        "tipo_tarifa": tipo_tarifa,
+                        "prazo": prazo,
+                        "peso": peso,
+                        "modalidade": modalidade,
+                        "valor_nf": valor_nf,
+                    },
+                }
+            frete_base = self._obter_frete_dropf(uf, peso)
+        else:
+            frete_base = self._obter_frete_package_com(uf, tipo_tarifa, peso)
 
         # Ad valorem (só se NF > R$ 100)
         ad_valorem = 0.0
