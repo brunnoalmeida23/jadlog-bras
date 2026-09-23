@@ -801,12 +801,7 @@
                         <span class="conteudo">${modalidade}</span>
                     </div>
 
-                    ${observacoesSeguras ? `
-                        <div class="campo">
-                            <span class="rotulo">Observações</span>
-                            <span class="conteudo observacoes">${observacoesSeguras}</span>
-                        </div>
-                    ` : ""}
+                    ${observacoesSeguras ? '<div class="campo"><span class="rotulo">Observações</span><span class="conteudo observacoes">' + observacoesSeguras + '</span></div>' : ""}
 
                     <div class="valor">
                         <span class="valor-label">VALOR FINAL</span>
@@ -901,3 +896,4 @@
 </script>
 
 {% endblock %}
+
