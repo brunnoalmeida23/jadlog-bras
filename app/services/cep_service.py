@@ -105,28 +105,6 @@ class CEPService:
         registros.sort(key=lambda r: r["amplitude"])
         self.dados = registros
 
-    @staticmethod
-    def _forcar_capital_sp(cep_int: int, resultado: dict) -> dict:
-        """Regra especial: CEPs de São Paulo que estão caindo como Interior
-        mas deveriam ser Capital.
-
-        A Cidaten está incompleta para a Zona Leste de SP.
-        Faixa problemática: 08000000 a 08499999 (Itaquera, Guaianases, etc.)
-        """
-        if resultado.get("uf") != "SP":
-            return resultado
-
-        if resultado.get("tipo_tarifa", "").startswith("Interior"):
-            # Zona Leste de SP (08000-000 a 08499-999)
-            if 8000000 <= cep_int <= 8499999:
-                resultado["tipo_tarifa"] = "Capital"
-                resultado["_forcado_capital"] = True
-                # Corrige o % Seguro para Capital (0,66%)
-                if resultado.get("seguro_percentual", 0) > 0.0066:
-                    resultado["seguro_percentual"] = 0.0066
-
-        return resultado
-
     def buscar(self, cep):
         cep_int = self._normalizar_cep(cep)
         if cep_int is None:
@@ -142,7 +120,7 @@ class CEPService:
 
         r = candidatos[0]
 
-        resultado = {
+        return {
             "cep": f"{cep_int:08d}",
             "cep_inicio": f"{r['inicio']:08d}",
             "cep_fim": f"{r['fim']:08d}",
@@ -153,8 +131,3 @@ class CEPService:
             "frap_fob": r["frap"],
             "seguro_percentual": r["seguro"],
         }
-
-        # Aplica regra especial: força Capital para CEPs de SP que estão como Interior
-        resultado = self._forcar_capital_sp(cep_int, resultado)
-
-        return resultado
