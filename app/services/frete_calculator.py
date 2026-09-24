@@ -4,8 +4,8 @@ import math
 from .tabela_cliente_final import (
     VALORES_ATE_30_CAPITAL,
     VALORES_ATE_30_INTERIOR,
-    LUCRO_ACIMA_30,
-    GLM_ACIMA_30,
+    CAPITAL_ACIMA_30,
+    INTERIOR_ACIMA_30,
 )
 from .tabela_dropf import TABELA_DROPF
 from .cep_service import CEPService
@@ -20,43 +20,65 @@ class FreteCalculator:
     def __init__(self):
         self.valores_capital = VALORES_ATE_30_CAPITAL
         self.valores_interior = VALORES_ATE_30_INTERIOR
-        self.lucro_acima_30 = LUCRO_ACIMA_30
-        self.glm_acima_30 = GLM_ACIMA_30
+        self.capital_acima_30 = CAPITAL_ACIMA_30
+        self.interior_acima_30 = INTERIOR_ACIMA_30
         self.tabela_dropf = TABELA_DROPF
 
-    def _arredondar_faixa(self, peso: float) -> int:
-        """Arredonda o peso pra próxima faixa de 10 (35->40, 45->50)."""
+    # ---------------------------------------------------------
+    # Normalização
+    # ---------------------------------------------------------
+    @staticmethod
+    def _normalizar_tipo_tarifa(tipo: str) -> str:
+        """Normaliza 'Capital' (sem número) para 'Capital 1'."""
+        tipo = str(tipo or "").strip()
+        if tipo == "Capital":
+            return "Capital 1"
+        return tipo
+
+    @staticmethod
+    def _arredondar_faixa(peso: float) -> int:
+        """Arredonda o peso para a próxima faixa de 10 (35→40, 45→50)."""
         faixa = math.ceil(peso / 10) * 10
         if faixa > 100:
             faixa = 100
         return faixa
 
+    @staticmethod
+    def _faixa_ate_30(peso: float) -> int:
+        """Converte o peso para a faixa da tabela até 30kg."""
+        if peso <= 1:
+            return 1
+        if peso <= 5:
+            return 5
+        if peso <= 10:
+            return 10
+        if peso <= 20:
+            return 20
+        return 30
+
+    # ---------------------------------------------------------
+    # Cálculo do frete base
+    # ---------------------------------------------------------
     def _obter_frete_package_com(self, uf: str, tipo_tarifa: str, peso: float) -> float:
-        """Frete base para PACKAGE e .COM (são iguais)."""
-        tipo = str(tipo_tarifa or "").strip()
+        """Frete base para PACKAGE e .COM (mesma tabela)."""
+        tipo = self._normalizar_tipo_tarifa(tipo_tarifa)
+        is_interior = tipo.startswith("Interior")
 
         if peso <= 30:
-            if peso <= 1:
-                peso_faixa = 1
-            elif peso <= 5:
-                peso_faixa = 5
-            elif peso <= 10:
-                peso_faixa = 10
-            elif peso <= 20:
-                peso_faixa = 20
-            else:
-                peso_faixa = 30
+            faixa = self._faixa_ate_30(peso)
+            if is_interior:
+                return self.valores_interior.get(faixa, 0.0)
+            return self.valores_capital.get(faixa, 0.0)
 
-            if tipo.startswith("Interior"):
-                return self.valores_interior.get(peso_faixa, 0.0)
-            else:
-                return self.valores_capital.get(peso_faixa, 0.0)
-        else:
-            faixa = self._arredondar_faixa(peso)
-            glm_uf = self.glm_acima_30.get(uf, self.glm_acima_30.get("SP", {}))
-            glm = glm_uf.get(faixa, 0.0)
-            lucro = self.lucro_acima_30.get(faixa, 0.0)
-            return glm + lucro
+        # Acima de 30kg
+        faixa = self._arredondar_faixa(peso)
+
+        if is_interior:
+            return self.interior_acima_30.get(faixa, 0.0)
+
+        # Capital
+        tabela_uf = self.capital_acima_30.get(uf) or self.capital_acima_30.get("SP", {})
+        return tabela_uf.get(faixa, 0.0)
 
     def _obter_frete_dropf(self, uf: str, peso: float) -> float:
         """Frete base para DROPF (tabela própria, só capital)."""
@@ -74,8 +96,10 @@ class FreteCalculator:
 
         return dados_uf["pesos"][pesos_tabela[-1]]
 
+    # ---------------------------------------------------------
+    # Cálculo principal
+    # ---------------------------------------------------------
     def calcular(self, cep: str, peso: float, modalidade: str = "PACKAGE", valor_nf: float = 0.0) -> dict:
-        """Calcula o frete baseado no CEP, peso, modalidade e valor da NF."""
         cep_service = CEPService()
         info_cep = cep_service.buscar(cep)
 
@@ -83,10 +107,10 @@ class FreteCalculator:
             return {"erro": f"CEP {cep} não encontrado"}
 
         uf = info_cep.get("uf", "SP")
-        tipo_tarifa = info_cep.get("tipo_tarifa", "Capital")
+        tipo_tarifa = self._normalizar_tipo_tarifa(info_cep.get("tipo_tarifa", "Capital"))
         cidade = info_cep.get("cidade", "")
         prazo = info_cep.get("prazo", 5)
-        seguro_percentual = 0.0066
+        seguro_percentual = info_cep.get("seguro_percentual", 0.0066)
 
         # Bloqueio acima de 100kg
         if peso > 100:

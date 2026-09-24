@@ -1,6 +1,5 @@
 ﻿/* ============================================
    JADLOG BRÁS - Estilos Padronizados
-   (baseado no HTML do home.py)
    ============================================ */
 
 body {
@@ -15,43 +14,83 @@ body {
 .bg-jadlog,
 .navbar-jadlog {
     background: #E31E24;
+    padding: 10px 0;
+    width: 100%;
 }
 
+.bg-jadlog > .container,
+.navbar-jadlog > .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    max-width: 100%;
+    width: 100%;
+    padding-left: 30px;
+    padding-right: 30px;
+    margin: 0;
+}
+
+/* Logo SEM fundo branco */
 .bg-jadlog .navbar-brand,
 .navbar-jadlog .navbar-brand {
     color: white;
     font-weight: 700;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
     text-decoration: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
 }
 
 .bg-jadlog .logo-img,
 .navbar-jadlog .logo-img {
-    height: 55px;
-    background: white;
-    padding: 5px 15px;
-    border-radius: 60px;
+    height: 50px;
+    width: auto;
+    display: block;
+    background: transparent;
+}
+
+.bg-jadlog .navbar-nav,
+.navbar-jadlog .navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .bg-jadlog .nav-link,
 .navbar-jadlog .nav-link {
     color: white !important;
+    font-weight: 500;
+    padding: 8px 14px;
+    text-decoration: none;
 }
 
 .bg-jadlog .nav-link.login-btn,
 .navbar-jadlog .nav-link.login-btn {
     background: white;
     color: #E31E24 !important;
-    padding: 5px 20px;
+    padding: 6px 20px;
     border-radius: 20px;
     font-weight: 600;
+    margin-left: 10px;
 }
 
 .bg-jadlog .nav-link.login-btn:hover,
 .navbar-jadlog .nav-link.login-btn:hover {
     background: #f0f0f0;
+}
+
+/* Conteúdo */
+main.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
 }
 
 /* Botões */
@@ -61,6 +100,8 @@ body {
     border: none;
     padding: 10px 30px;
     border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-jadlog:hover {
@@ -85,7 +126,8 @@ body {
     text-align: center;
 }
 
-/* Fundo da página */
-body {
-    background: #f6f7f9 !important;
+.footer .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }

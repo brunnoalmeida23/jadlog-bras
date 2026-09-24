@@ -1,7 +1,6 @@
 # app/services/cep_service.py
 from __future__ import annotations
 
-import bisect
 import re
 from typing import Optional
 
@@ -13,9 +12,7 @@ class CEPService:
 
     def __init__(self, arquivo_cidaten: str = "Cidaten_2026.xlsx"):
         self.arquivo = arquivo_cidaten
-        # inicio, fim, uf, localidade, tipo, prazo, frap_fob, seguro
-        self.dados = []
-        self.inicios = []
+        self.dados: list[dict] = []
         self._carregar()
 
     @staticmethod
@@ -37,6 +34,35 @@ class CEPService:
             inicio, fim = int(numeros[0]), int(numeros[1])
         return inicio, fim
 
+    @staticmethod
+    def _parse_seguro(valor) -> float:
+        """Aceita 0.0066 (decimal), 0,66% (texto), 1% (texto), 0.01 (decimal)."""
+        if pd.isna(valor):
+            return 0.0
+
+        # Se já for número (float/int), retorna direto
+        if isinstance(valor, (int, float)):
+            return float(valor)
+
+        texto = str(valor).strip()
+
+        # Se tiver "%", converte de percentual para decimal
+        if "%" in texto:
+            texto = texto.replace("%", "").strip()
+            # Troca vírgula por ponto
+            texto = texto.replace(",", ".")
+            try:
+                return float(texto) / 100.0
+            except ValueError:
+                return 0.0
+
+        # Se não tiver "%", tenta converter direto (pode ser decimal)
+        texto = texto.replace(",", ".")
+        try:
+            return float(texto)
+        except ValueError:
+            return 0.0
+
     def _carregar(self):
         try:
             df = pd.read_excel(self.arquivo, sheet_name="Cidaten", header=1)
@@ -56,41 +82,57 @@ class CEPService:
             if pd.isna(row["Cep"]):
                 continue
 
-            inicio, fim = self._parse_intervalo(row["Cep"])
+            try:
+                inicio, fim = self._parse_intervalo(row["Cep"])
+            except ValueError:
+                continue
+
             uf = str(row["UF"]).strip().upper()
             cidade = str(row["Localidade"]).strip()
             tipo = " ".join(str(row["Tipo Tarifa"]).strip().split())
             prazo = int(row["Prazo Rodo"]) if pd.notna(row["Prazo Rodo"]) else 0
             frap = str(row["Frap (Fob)"]).strip() if pd.notna(row["Frap (Fob)"]) else ""
-            seguro = float(row["% Seguro"]) if pd.notna(row["% Seguro"]) else 0.0
+            seguro = self._parse_seguro(row["% Seguro"])
 
-            registros.append((inicio, fim, uf, cidade, tipo, prazo, frap, seguro))
+            registros.append({
+                "inicio": inicio,
+                "fim": fim,
+                "uf": uf,
+                "cidade": cidade,
+                "tipo": tipo,
+                "prazo": prazo,
+                "frap": frap,
+                "seguro": seguro,
+                "amplitude": fim - inicio,
+            })
 
-        registros.sort(key=lambda x: x[0])
+        # Ordena por amplitude (mais específico primeiro)
+        registros.sort(key=lambda r: r["amplitude"])
         self.dados = registros
-        self.inicios = [r[0] for r in registros]
 
     def buscar(self, cep):
         cep_int = self._normalizar_cep(cep)
         if cep_int is None:
             return None
 
-        pos = bisect.bisect_right(self.inicios, cep_int) - 1
-        if pos < 0:
+        candidatos = [
+            r for r in self.dados
+            if r["inicio"] <= cep_int <= r["fim"]
+        ]
+
+        if not candidatos:
             return None
 
-        inicio, fim, uf, cidade, tipo, prazo, frap, seguro = self.dados[pos]
-        if not (inicio <= cep_int <= fim):
-            return None
+        r = candidatos[0]
 
         return {
             "cep": f"{cep_int:08d}",
-            "cep_inicio": f"{inicio:08d}",
-            "cep_fim": f"{fim:08d}",
-            "uf": uf,
-            "cidade": cidade,
-            "tipo_tarifa": tipo,
-            "prazo": prazo,
-            "frap_fob": frap,
-            "seguro_percentual": seguro,
+            "cep_inicio": f"{r['inicio']:08d}",
+            "cep_fim": f"{r['fim']:08d}",
+            "uf": r["uf"],
+            "cidade": r["cidade"],
+            "tipo_tarifa": r["tipo"],
+            "prazo": r["prazo"],
+            "frap_fob": r["frap"],
+            "seguro_percentual": r["seguro"],
         }
