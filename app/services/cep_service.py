@@ -40,23 +40,19 @@ class CEPService:
         if pd.isna(valor):
             return 0.0
 
-        # Se já for número (float/int), retorna direto
         if isinstance(valor, (int, float)):
             return float(valor)
 
         texto = str(valor).strip()
 
-        # Se tiver "%", converte de percentual para decimal
         if "%" in texto:
             texto = texto.replace("%", "").strip()
-            # Troca vírgula por ponto
             texto = texto.replace(",", ".")
             try:
                 return float(texto) / 100.0
             except ValueError:
                 return 0.0
 
-        # Se não tiver "%", tenta converter direto (pode ser decimal)
         texto = texto.replace(",", ".")
         try:
             return float(texto)
@@ -106,9 +102,30 @@ class CEPService:
                 "amplitude": fim - inicio,
             })
 
-        # Ordena por amplitude (mais específico primeiro)
         registros.sort(key=lambda r: r["amplitude"])
         self.dados = registros
+
+    @staticmethod
+    def _forcar_capital_sp(cep_int: int, resultado: dict) -> dict:
+        """Regra especial: CEPs de São Paulo que estão caindo como Interior
+        mas deveriam ser Capital.
+
+        A Cidaten está incompleta para a Zona Leste de SP.
+        Faixa problemática: 08000000 a 08499999 (Itaquera, Guaianases, etc.)
+        """
+        if resultado.get("uf") != "SP":
+            return resultado
+
+        if resultado.get("tipo_tarifa", "").startswith("Interior"):
+            # Zona Leste de SP (08000-000 a 08499-999)
+            if 8000000 <= cep_int <= 8499999:
+                resultado["tipo_tarifa"] = "Capital"
+                resultado["_forcado_capital"] = True
+                # Corrige o % Seguro para Capital (0,66%)
+                if resultado.get("seguro_percentual", 0) > 0.0066:
+                    resultado["seguro_percentual"] = 0.0066
+
+        return resultado
 
     def buscar(self, cep):
         cep_int = self._normalizar_cep(cep)
@@ -125,7 +142,7 @@ class CEPService:
 
         r = candidatos[0]
 
-        return {
+        resultado = {
             "cep": f"{cep_int:08d}",
             "cep_inicio": f"{r['inicio']:08d}",
             "cep_fim": f"{r['fim']:08d}",
@@ -136,3 +153,8 @@ class CEPService:
             "frap_fob": r["frap"],
             "seguro_percentual": r["seguro"],
         }
+
+        # Aplica regra especial: força Capital para CEPs de SP que estão como Interior
+        resultado = self._forcar_capital_sp(cep_int, resultado)
+
+        return resultado

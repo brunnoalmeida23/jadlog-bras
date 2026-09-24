@@ -45,7 +45,15 @@ class FreteCalculator:
 
     @staticmethod
     def _faixa_ate_30(peso: float) -> int:
-        """Converte o peso para a faixa da tabela até 30kg."""
+        """Converte o peso para a faixa da tabela até 30kg.
+
+        Faixas (conforme APP FEITO MANUALMENTE):
+            0,25 a 1kg   -> 1
+            2 a 5kg      -> 5
+            6 a 10kg     -> 10
+            11 a 20kg    -> 20
+            21 a 30kg    -> 30
+        """
         if peso <= 1:
             return 1
         if peso <= 5:

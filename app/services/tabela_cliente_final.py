@@ -4,31 +4,31 @@
 #   - APP FEITO MANUALMENTE.xlsx (até 30kg)
 #   - final clientes impressão.xlsx (acima de 30kg)
 #
-# Lógica:
-#   - Até 30kg: Capital e Interior usam a APP FEITO MANUALMENTE
-#   - Acima de 30kg:
-#       Capital  → valores por UF (GLM + Lucro)
-#       Interior → valores fixos (Coleta Padrão Interior)
+# Faixas (conforme APP FEITO MANUALMENTE):
+#   Capital:  0,25-1kg = R$ 24,99 | 2-5kg = R$ 49,99 | 6-10kg = R$ 79,99
+#             11-20kg = R$ 149,99 | 21-30kg = R$ 229,99
+#   Interior: 0,25-1kg = R$ 13,00 | 2-5kg = R$ 26,00 | 6-10kg = R$ 44,00
+#             11-20kg = R$ 80,00 | 21-30kg = R$ 126,00
 
 # =============================================================
 # ATÉ 30KG — valores de venda (APP FEITO MANUALMENTE)
 # Capital 1, 2 e 3 usam os MESMOS valores
 # =============================================================
 VALORES_ATE_30_CAPITAL = {
-    1: 24.99,
-    5: 49.99,
-    10: 79.99,
-    20: 149.99,
-    30: 229.99,
+    1: 24.99,       # 0,25 a 1kg
+    5: 49.99,       # 2 a 5kg
+    10: 79.99,      # 6 a 10kg
+    20: 149.99,     # 11 a 20kg
+    30: 229.99,     # 21 a 30kg
 }
 
 # Interior 1, 2 e 3 usam os MESMOS valores
 VALORES_ATE_30_INTERIOR = {
-    1: 13.00,
-    5: 26.00,
-    10: 44.00,
-    20: 80.00,
-    30: 126.00,
+    1: 13.00,       # 0,25 a 1kg
+    5: 26.00,       # 2 a 5kg
+    10: 44.00,      # 6 a 10kg
+    20: 80.00,      # 11 a 20kg
+    30: 126.00,     # 21 a 30kg
 }
 
 # =============================================================
